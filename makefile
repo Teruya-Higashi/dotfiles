@@ -1,4 +1,4 @@
-all: permission init brew link
+all: permission init install link
 
 permission:
 	chmod +x scripts/*
@@ -6,8 +6,8 @@ permission:
 init:
 	scripts/init.sh
 
-brew:
-	scripts/brew.sh
+install:
+	scripts/install.sh
 
 link:
 	scripts/link.sh

@@ -1,0 +1,13 @@
+name: Dotfiles CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: set mac os
+        run: make

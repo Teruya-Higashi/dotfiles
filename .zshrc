@@ -23,29 +23,28 @@ if type brew &>/dev/null; then
   autoload -Uz compinit && compinit
 fi
 
-# activate zsh-git-prompt
-if ! type python &>/dev/null; then
-  if type python3 &>/dev/null; then
-    alias python="python3"
-  else
-    echo "python3 not found. can not activate zsh-git-prompt"
-  fi
-fi
-source "$(brew --prefix)/opt/zsh-git-prompt/zshrc.sh"
+# activate git-prompt
+source "$(echo $HOME)/.zsh/git-prompt.zsh"
 
-# customize git-prompt
-# ref. https://github.com/olivierverdier/zsh-git-prompt/blob/0a6c8b610e799040b612db8888945f502a2ddd9d/zshrc.sh#L95-L106
+# set gitprompt
+# ref. https://github.com/woefe/git-prompt.zsh#appearance
 ZSH_THEME_GIT_PROMPT_PREFIX="[ "
 ZSH_THEME_GIT_PROMPT_SUFFIX=" ]"
 ZSH_THEME_GIT_PROMPT_SEPARATOR=" | "
+ZSH_THEME_GIT_PROMPT_DETACHED="%{$fg_bold[cyan]%}:"
 ZSH_THEME_GIT_PROMPT_BRANCH="%{$fg[magenta]%}"
-ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[blue]%}%{#%G%}"
-ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}%{x%G%}"
-ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[red]%}%{+%G%}"
-ZSH_THEME_GIT_PROMPT_BEHIND="%{↑%G%}"
-ZSH_THEME_GIT_PROMPT_AHEAD="%{↑%G%}"
-ZSH_THEME_GIT_PROMPT_UNTRACKED="%{..%G%}"
-ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}%{--%G%}"
+ZSH_THEME_GIT_PROMPT_UPSTREAM_SYMBOL="%{$fg_bold[yellow]%}⟳ "
+ZSH_THEME_GIT_PROMPT_UPSTREAM_NO_TRACKING="%{$fg_bold[red]%}!"
+ZSH_THEME_GIT_PROMPT_UPSTREAM_PREFIX="%{$fg[red]%}(%{$fg[yellow]%}"
+ZSH_THEME_GIT_PROMPT_UPSTREAM_SUFFIX="%{$fg[red]%})"
+ZSH_THEME_GIT_PROMPT_BEHIND=" ↓"
+ZSH_THEME_GIT_PROMPT_AHEAD=" ↑"
+ZSH_THEME_GIT_PROMPT_UNMERGED="%{$fg[red]%}x"
+ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[blue]%}#"
+ZSH_THEME_GIT_PROMPT_UNSTAGED="%{$fg[red]%}+"
+ZSH_THEME_GIT_PROMPT_UNTRACKED=".."
+ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}$"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}--"
 
 # for prompt variables
 local user="%{$fg[yellow]%}%n%{$reset_color%}"
@@ -55,7 +54,7 @@ local head="%{$fg[white]%}%(!.#.$)%"
 
 prompt_with_git_status() {
   if [ "$(git rev-parse --is-inside-work-tree 2> /dev/null)" = true ]; then
-    PROMPT="${user} : ${pwd} $(git_super_status)"$'\n'"${head}  "
+    PROMPT="${user} : ${pwd} $(gitprompt)"$'\n'"${head}  "
   else
     PROMPT="${user} : ${pwd}"$'\n'"${head}  "
   fi
