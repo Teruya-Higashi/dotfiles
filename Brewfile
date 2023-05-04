@@ -7,6 +7,7 @@ brew "zsh-autosuggestions"
 brew "zsh-completions"
 brew "zsh-git-prompt"
 brew "anyenv"
+brew "jq"
 
 cask "visual-studio-code"
 cask "docker"

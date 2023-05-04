@@ -8,3 +8,8 @@ if [ "$(uname)" != "Darwin" ] ; then
 fi
 
 brew bundle
+
+# if [ ! -e $(pwd)/zsh-completions-chmod-done.tmp ]; then
+# 	chmod -R go-w '/opt/homebrew/share'
+# 	touch $(pwd)/zsh-completions-chmod-done.tmp
+# fi
