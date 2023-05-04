@@ -23,7 +23,7 @@ if type brew &>/dev/null; then
   autoload -Uz compinit && compinit
 fi
 
-# activate git-prompt
+# activate gitprompt
 source "$(echo $HOME)/.zsh/git-prompt.zsh"
 
 # set gitprompt
