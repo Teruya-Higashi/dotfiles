@@ -5,7 +5,6 @@ tap "homebrew/core"
 brew "git"
 brew "zsh-autosuggestions"
 brew "zsh-completions"
-brew "zsh-git-prompt"
 brew "anyenv"
 brew "jq"
 
