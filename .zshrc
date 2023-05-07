@@ -60,6 +60,15 @@ prompt_with_git_status() {
   fi
 }
 
+add_newline() {
+  if [[ -z $PS1_NEWLINE_LOGIN ]]; then
+    PS1_NEWLINE_LOGIN=true
+  else
+    printf '\n'
+  fi
+}
+
 precmd() {
   prompt_with_git_status
+  add_newline
 }
