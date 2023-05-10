@@ -11,6 +11,9 @@ path=(
   /Library/Apple/usr/bin
 )
 
+# envs
+export HISTSIZE=20000
+
 # colors
 export LSCOLORS=gxfxcxdxcxegedabagacad
 alias ls="ls -GF"
