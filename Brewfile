@@ -8,5 +8,6 @@ brew "zsh-completions"
 brew "anyenv"
 brew "jq"
 
+cask "rectangle"
 cask "visual-studio-code"
 cask "docker"
