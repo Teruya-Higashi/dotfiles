@@ -1,6 +1,4 @@
 tap "homebrew/bundle"
-tap "homebrew/cask"
-tap "homebrew/core"
 
 brew "git"
 brew "zsh-autosuggestions"
@@ -10,4 +8,4 @@ brew "jq"
 
 cask "rectangle"
 cask "visual-studio-code"
-cask "docker"
+cask "orbstack"

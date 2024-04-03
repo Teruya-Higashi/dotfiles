@@ -7,6 +7,8 @@ if [ "$(uname)" != "Darwin" ] ; then
 	exit 1
 fi
 
+eval $(/opt/homebrew/bin/brew shellenv)
+
 brew bundle
 
 if [ ! -e ~/.zsh ]; then
