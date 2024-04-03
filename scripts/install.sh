@@ -7,7 +7,7 @@ if [ "$(uname)" != "Darwin" ] ; then
 	exit 1
 fi
 
-eval $(/opt/homebrew/bin/brew shellenv)
+PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH
 
 brew bundle
 
