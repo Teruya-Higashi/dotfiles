@@ -9,7 +9,14 @@ fi
 
 PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH
 
-brew bundle
+brew install git
+brew install zsh-autosuggestions
+brew install zsh-completions
+brew install mise
+brew install jq
+brew install rectangle
+brew install visual-studio-code
+brew install orbstack
 
 if [ ! -e ~/.zsh ]; then
 	mkdir ~/.zsh
