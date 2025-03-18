@@ -1,5 +1,6 @@
 typeset -U path PATH
 path=(
+  $HOME/.local/share/mise/shims(N-/)
   /opt/homebrew/bin(N-/)
   /opt/homebrew/sbin(N-/)
   /usr/bin
@@ -77,5 +78,5 @@ precmd() {
   add_newline
 }
 
-# mise
+# set mise
 eval "$(mise activate zsh)"
