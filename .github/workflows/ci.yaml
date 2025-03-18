@@ -3,11 +3,13 @@ name: Dotfiles CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: set mac os
         run: make
