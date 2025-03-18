@@ -76,3 +76,6 @@ precmd() {
   prompt_with_git_status
   add_newline
 }
+
+# mise
+eval "$(mise activate zsh)"
