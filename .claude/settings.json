@@ -12,9 +12,7 @@
       "WebSearch",
       "Write",
       "mcp__context7__resolve-library-id",
-      "mcp__serena",
-      "mcp__linear-server",
-      "mcp__plugin_playwright_playwright"
+      "mcp__serena"
     ],
     "deny": [
       "Bash(curl *)",
