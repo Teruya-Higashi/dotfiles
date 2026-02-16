@@ -1,0 +1,54 @@
+{
+  "respectGitignore": true,
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true"
+  },
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit",
+      "MultiEdit",
+      "WebFetch",
+      "WebSearch",
+      "Write",
+      "mcp__context7__resolve-library-id",
+      "mcp__serena",
+      "mcp__linear-server",
+      "mcp__plugin_playwright_playwright"
+    ],
+    "deny": [
+      "Bash(curl *)",
+      "Bash(dd *)",
+      "Bash(fdisk *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(mise run release *)",
+      "Bash(mkfs *)",
+      "Bash(nc *)",
+      "Bash(rm -rf *)",
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(sudo *)",
+      "Bash(wget *)",
+      "Read(**/*key*)",
+      "Read(**/*token*)",
+      "Read(.env.*)",
+      "Read(//**/id_ed25519)",
+      "Read(//**/id_rsa)",
+      "Write(//**/secrets/**)",
+      "Write(//**/.env*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.js"
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true
+  },
+  "model": "opus"
+}
