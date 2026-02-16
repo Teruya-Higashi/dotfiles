@@ -34,7 +34,7 @@ curl -o ~/.zsh/git-prompt.zsh https://raw.githubusercontent.com/woefe/zsh-git-pr
 # fi
 
 mise use -g gcloud@latest
-mise use -g aws@latest
+mise use -g awscli@latest
 mise use -g jq@latest
 mise use -g yq@latest
 mise use -g uv@latest
