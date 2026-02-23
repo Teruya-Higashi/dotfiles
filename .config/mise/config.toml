@@ -1,7 +1,7 @@
 [tools]
 aqua = "latest"
 gcloud = "latest"
-aws = "latest"
+awscli = "latest"
 jq = "latest"
 yq = "latest"
 uv = "latest"
