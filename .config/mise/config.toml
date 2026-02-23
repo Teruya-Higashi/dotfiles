@@ -1,0 +1,8 @@
+[tools]
+aqua = "latest"
+gcloud = "latest"
+awscli = "latest"
+jq = "latest"
+yq = "latest"
+uv = "latest"
+"npm:takt" = "latest"
