@@ -34,12 +34,7 @@ curl -o ~/.zsh/git-prompt.zsh https://raw.githubusercontent.com/woefe/zsh-git-pr
 # 	touch $(pwd)/zsh-completions-chmod-done.tmp
 # fi
 
-mise use -g gcloud@latest
-mise use -g aws@latest
-mise use -g jq@latest
-mise use -g yq@latest
-mise use -g uv@latest
-mise use -g npm:takt@latest
+mise install
 
 claude mcp add serena -s user -- mise x -- uvx --from "git+https://github.com/oraios/serena" serena start-mcp-server --enable-web-dashboard false --context ide-assistant
 claude mcp add codex codex mcp-server

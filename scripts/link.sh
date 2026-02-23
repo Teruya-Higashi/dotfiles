@@ -19,8 +19,10 @@ ln -s $(pwd)/.vimrc ~/.vimrc
 
 mkdir -p ~/.agents
 mkdir -p ~/.claude
+mkdir -p ~/.config/mise
 ln -s $(pwd)/.agents/skills ~/.agents
 ln -s $(pwd)/.agents/skills ~/.claude
 ln -s $(pwd)/.claude/settings.json ~/.claude/settings.json
 ln -s $(pwd)/.claude/statusline.js ~/.claude/statusline.js && chmod +x ~/.claude/statusline.js
 ln -s $(pwd)/.takt ~/.takt
+ln -s $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
