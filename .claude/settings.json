@@ -41,6 +41,10 @@
     "type": "command",
     "command": "~/.claude/statusline.js"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
