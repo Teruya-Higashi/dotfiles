@@ -20,20 +20,7 @@ process.stdin.on('end', () => {
     const effort = getEffortLevel(currentDir);
 
     // Get Git branch
-    let branch = '';
-    if (currentDir && fs.existsSync(path.join(currentDir, '.git'))) {
-      try {
-        const branchName = execSync('git --no-optional-locks branch --show-current 2>/dev/null', {
-          cwd: currentDir,
-          encoding: 'utf-8'
-        }).trim();
-        if (branchName) {
-          branch = `${branchName}`;
-        }
-      } catch (_e) {
-        // Gitコマンドエラーは無視
-      }
-    }
+    const branch = getGitBranch(currentDir);
 
     // Context usage — Claude Code provides pre-calculated percentages
     const cw = data.context_window || {};
@@ -45,9 +32,9 @@ process.stdin.on('end', () => {
     const tokenDisplay = formatTokenCount(estimatedTokens);
 
     // Color coding for percentage
-    let percentageColor = '\x1b[32m'; // Green
-    if (percentage >= 56) percentageColor = '\x1b[33m'; // Yellow
-    if (percentage >= 72) percentageColor = '\x1b[91m'; // Bright Red
+    const percentageColor = percentage >= 72 ? '\x1b[91m' // Bright Red
+      : percentage >= 56 ? '\x1b[33m' // Yellow
+      : '\x1b[32m'; // Green
 
     // Build status line: [Model:effort] tokens (percentage%)
     const effortDisplay = effort ? `:${effort}` : '';
@@ -90,6 +77,18 @@ function getEffortLevel(currentDir) {
     }
   }
   return null;
+}
+
+function getGitBranch(dir) {
+  if (!dir || !fs.existsSync(path.join(dir, '.git'))) return '';
+  try {
+    return execSync('git --no-optional-locks branch --show-current 2>/dev/null', {
+      cwd: dir,
+      encoding: 'utf-8'
+    }).trim();
+  } catch (_e) {
+    return '';
+  }
 }
 
 function formatTokenCount(tokens) {
