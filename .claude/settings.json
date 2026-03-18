@@ -3,6 +3,10 @@
   "env": {
     "ENABLE_TOOL_SEARCH": "true"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash",
@@ -40,10 +44,6 @@
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.js"
-  },
-  "attribution": {
-    "commit": "",
-    "pr": ""
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,

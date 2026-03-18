@@ -105,11 +105,12 @@ Task(
 #### b. Codex レビュー（`/codex` スキル）
 
 `/codex` スキルを使って Codex にレビューを委任する。
+`--output` でファイルパスを指定すると、Codex が自身のファイル操作で全文を書き出す。
 
 ```
 Skill(
   skill: "codex",
-  args: "--model {モデル} --reasoning {reasoning_effort} --output review-codex_{sequence_number}.md` ステージエリアの差分をレビューし、結果を書き出してください。{レビュー観点の指示}"
+  args: "--model {モデル} --reasoning {reasoning_effort} --output review-codex_{sequence_number}.md ステージエリアの差分をレビューし、結果を書き出してください。{レビュー観点の指示}"
 )
 ```
 
