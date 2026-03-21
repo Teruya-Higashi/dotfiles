@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
@@ -39,31 +38,6 @@ function getGitBranch(dir) {
   }
 }
 
-function getEffortLevel(currentDir) {
-  const envEffort = process.env.CLAUDE_CODE_EFFORT_LEVEL;
-  if (envEffort) {
-    const lower = envEffort.toLowerCase();
-    if (lower === 'unset' || lower === 'auto') return null;
-    if (['low', 'medium', 'high', 'max'].includes(lower)) return lower;
-  }
-
-  const settingsFiles = [
-    path.join(currentDir, '.claude', 'settings.local.json'),
-    path.join(currentDir, '.claude', 'settings.json'),
-    path.join(process.env.HOME, '.claude', 'settings.json'),
-  ];
-
-  for (const file of settingsFiles) {
-    try {
-      if (fs.existsSync(file)) {
-        const settings = JSON.parse(fs.readFileSync(file, 'utf-8'));
-        if (settings.effortLevel) return settings.effortLevel;
-      }
-    } catch (_e) { /* skip */ }
-  }
-  return null;
-}
-
 let input = '';
 process.stdin.on('data', (chunk) => { input += chunk; });
 process.stdin.on('end', () => {
@@ -75,9 +49,7 @@ process.stdin.on('end', () => {
     const branch = getGitBranch(currentDir);
     const header = branch ? `${dirName} - ${branch}` : dirName;
 
-    const effort = getEffortLevel(currentDir);
-    const effortDisplay = effort ? `:${effort}` : '';
-    const model = `${BOLD}${data.model?.display_name || 'Claude'}${effortDisplay}${R}`;
+    const model = `${BOLD}${data.model?.display_name || 'Claude'}${R}`;
 
     const usages = [];
 
