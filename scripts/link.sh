@@ -26,3 +26,13 @@ ln -s $(pwd)/.claude/settings.json ~/.claude/settings.json
 ln -s $(pwd)/.claude/statusline.js ~/.claude/statusline.js && chmod +x ~/.claude/statusline.js
 ln -s $(pwd)/.takt ~/.takt
 ln -s $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
+
+GOOGLE_IME_DIR=~/Library/Application\ Support/Google/JapaneseInput
+if [ -d "$GOOGLE_IME_DIR" ]; then
+    for f in config1.db user_dictionary.db; do
+        if [ -e "$GOOGLE_IME_DIR/$f" ] && [ ! -L "$GOOGLE_IME_DIR/$f" ]; then
+            mv "$GOOGLE_IME_DIR/$f" "$GOOGLE_IME_DIR/${f}_bk_$(date +"%Y%m%d%I%M%S")"
+        fi
+        ln -sf $(pwd)/.config/google-japanese-input/$f "$GOOGLE_IME_DIR/$f"
+    done
+fi
