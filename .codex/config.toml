@@ -14,7 +14,7 @@ enabled = false
 
 [features]
 unified_exec = true
-collab = true
+multi_agent = true
 
 [profiles.fast]
 model_reasoning_effort = "high"

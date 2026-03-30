@@ -1,0 +1,19 @@
+**/.claude/settings.local.json
+**/.serena/cache/
+**/.playwright-cli
+
+# .takt: ignore everything except version-controlled config/facets
+**/.takt/*
+!**/.takt/config.yaml
+!**/.takt/pieces/
+!**/.takt/pieces/**
+!**/.takt/personas/
+!**/.takt/personas/**
+!**/.takt/policies/
+!**/.takt/policies/**
+!**/.takt/knowledge/
+!**/.takt/knowledge/**
+!**/.takt/instructions/
+!**/.takt/instructions/**
+!**/.takt/output-contracts/
+!**/.takt/output-contracts/**
