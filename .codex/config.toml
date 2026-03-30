@@ -6,6 +6,9 @@ approval_policy = "untrusted"
 sandbox_mode = "workspace-write"
 web_search = "live"
 
+[sandbox_workspace_write]
+network_access = true
+
 [tools]
 view_image = true
 
