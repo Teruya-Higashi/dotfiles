@@ -19,15 +19,18 @@ ln -s $(pwd)/.vimrc ~/.vimrc
 
 mkdir -p ~/.agents
 mkdir -p ~/.claude
+mkdir -p ~/.codex
 mkdir -p ~/.config/git
 mkdir -p ~/.config/mise
-ln -s $(pwd)/.agents/skills ~/.agents
-ln -s $(pwd)/.agents/skills ~/.claude
-ln -s $(pwd)/.claude/settings.json ~/.claude/settings.json
-ln -s $(pwd)/.claude/statusline.js ~/.claude/statusline.js && chmod +x ~/.claude/statusline.js
-ln -s $(pwd)/.takt ~/.takt
-ln -s $(pwd)/.config/git/ignore ~/.config/git/ignore
-ln -s $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
+
+ln -sf $(pwd)/.agents/skills ~/.agents
+ln -sf $(pwd)/.agents/skills ~/.claude
+ln -sf $(pwd)/.claude/settings.json ~/.claude/settings.json
+ln -sf $(pwd)/.claude/statusline.js ~/.claude/statusline.js && chmod +x ~/.claude/statusline.js
+ln -sf $(pwd)/.codex/config.toml ~/.codex/config.toml
+ln -sf $(pwd)/.takt ~/.takt
+ln -sf $(pwd)/.config/git/ignore ~/.config/git/ignore
+ln -sf $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
 
 GOOGLE_IME_DIR=~/Library/Application\ Support/Google/JapaneseInput
 if [ -d "$GOOGLE_IME_DIR" ]; then
