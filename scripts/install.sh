@@ -17,10 +17,8 @@ brew install mise
 brew install rectangle
 brew install visual-studio-code
 brew install orbstack
-brew install claude-code
 brew install claude
 brew install chatgpt
-brew install codex
 brew install dbeaver-community
 brew install google-japanese-ime
 
