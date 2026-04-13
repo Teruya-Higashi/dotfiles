@@ -50,6 +50,7 @@
     "type": "command",
     "command": "~/.claude/statusline.js"
   },
+  "outputStyle": "Explanatory",
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
