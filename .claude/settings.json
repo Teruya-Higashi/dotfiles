@@ -6,6 +6,7 @@
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_EFFORT_LEVEL": "max"
   },
+  "autoMemoryEnabled": false,
   "attribution": {
     "commit": "",
     "pr": ""
