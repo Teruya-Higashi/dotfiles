@@ -5,9 +5,9 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_EFFORT_LEVEL": "high",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "opus[1m]"
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus[1m]",
+    "DISABLE_TELEMETRY": "1"
   },
-  "autoMemoryEnabled": false,
   "attribution": {
     "commit": "",
     "pr": ""
@@ -50,7 +50,6 @@
     "type": "command",
     "command": "~/.claude/statusline.js"
   },
-  "outputStyle": "Explanatory",
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
@@ -69,6 +68,8 @@
       }
     }
   },
+  "model": "opus[1m]",
+  "outputStyle": "Explanatory",
   "language": "Japanese",
-  "model": "opus[1m]"
+  "autoMemoryEnabled": false
 }
