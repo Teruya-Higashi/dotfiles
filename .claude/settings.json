@@ -1,16 +1,12 @@
 {
-  "respectGitignore": true,
   "env": {
-    "ENABLE_TOOL_SEARCH": "true",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1",
+    "CLAUDE_CODE_EFFORT_LEVEL": "high",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_NO_FLICKER": "1",
-    "CLAUDE_CODE_EFFORT_LEVEL": "high",
     "CLAUDE_CODE_SUBAGENT_MODEL": "opus[1m]",
-    "DISABLE_TELEMETRY": "1"
-  },
-  "attribution": {
-    "commit": "",
-    "pr": ""
+    "DISABLE_TELEMETRY": "1",
+    "ENABLE_TOOL_SEARCH": "true"
   },
   "permissions": {
     "allow": [
@@ -46,10 +42,6 @@
       "Write(//**/.env*)"
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/statusline.js"
-  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
@@ -68,8 +60,18 @@
       }
     }
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.js"
+  },
   "model": "opus[1m]",
   "outputStyle": "Explanatory",
   "language": "Japanese",
-  "autoMemoryEnabled": false
+  "respectGitignore": true,
+  "autoMemoryEnabled": false,
+  "showThinkingSummaries": true
 }
