@@ -1,12 +1,15 @@
 [tools]
 aqua = "latest"
 gcloud = "latest"
+
 "aqua:aws-cli" = "latest"
 "aqua:jq" = "latest"
 "aqua:yq" = "latest"
 "aqua:uv" = "latest"
+"aqua:hashicorp/terraform" = "latest"
 "aqua:claude-code" = "latest"
 "aqua:openai/codex" = "latest"
+
 "npm:takt" = "latest"
-"npm:@playwright/cli" = "latest"
 "npm:difit" = "latest"
+"npm:@playwright/cli" = "latest"
