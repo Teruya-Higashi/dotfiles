@@ -21,7 +21,7 @@ mkdir -p ~/.agents
 mkdir -p ~/.claude
 mkdir -p ~/.codex
 mkdir -p ~/.config/git
-mkdir -p ~/.config/mise
+mkdir -p ~/.config/mise/conf.d
 
 ln -sf $(pwd)/.agents/skills ~/.agents
 ln -sf $(pwd)/.agents/skills ~/.claude
@@ -31,6 +31,7 @@ ln -sf $(pwd)/.codex/config.toml ~/.codex/config.toml
 ln -sf $(pwd)/.takt ~/.takt
 ln -sf $(pwd)/.config/git/ignore ~/.config/git/ignore
 ln -sf $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
+ln -sf $(pwd)/.config/mise/conf.d/local.toml ~/.config/mise/conf.d/local.toml
 
 GOOGLE_IME_DIR=~/Library/Application\ Support/Google/JapaneseInput
 if [ -d "$GOOGLE_IME_DIR" ]; then
