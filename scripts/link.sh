@@ -32,6 +32,7 @@ ln -sf $(pwd)/.takt ~/.takt
 ln -sf $(pwd)/.config/git/ignore ~/.config/git/ignore
 ln -sf $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
 ln -sf $(pwd)/.config/mise/conf.d/local.toml ~/.config/mise/conf.d/local.toml
+git update-index --skip-worktree .config/mise/conf.d/local.toml
 
 GOOGLE_IME_DIR=~/Library/Application\ Support/Google/JapaneseInput
 if [ -d "$GOOGLE_IME_DIR" ]; then
