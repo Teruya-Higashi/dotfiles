@@ -4,7 +4,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const R = '\x1b[0m';
-const DIM = '\x1b[2m';
+const LABEL = '\x1b[38;2;170;170;170m';
 const BOLD = '\x1b[1m';
 
 const RINGS = ['○', '◔', '◑', '◕', '●'];
@@ -25,7 +25,7 @@ function ring(pct) {
 
 function fmt(label, pct) {
   const p = Math.round(pct);
-  return `${DIM}${label}${R} ${gradient(pct)}${ring(pct)} ${p}%${R}`;
+  return `${LABEL}${label}${R} ${gradient(pct)}${ring(pct)} ${p}%${R}`;
 }
 
 function getGitBranch(dir) {
@@ -54,13 +54,13 @@ process.stdin.on('end', () => {
     const usages = [];
 
     const contextWindow = data.context_window?.used_percentage;
-    if (contextWindow != null) usages.push(fmt('ctx', contextWindow));
+    if (contextWindow != null) usages.push(fmt('ctx:', contextWindow));
 
     const fiveHour = data.rate_limits?.five_hour?.used_percentage;
-    if (fiveHour != null) usages.push(fmt('5h', fiveHour));
+    if (fiveHour != null) usages.push(fmt('5h:', fiveHour));
 
     const sevenDay = data.rate_limits?.seven_day?.used_percentage;
-    if (sevenDay != null) usages.push(fmt('7d', sevenDay));
+    if (sevenDay != null) usages.push(fmt('7d:', sevenDay));
 
     process.stdout.write(`${header}\n${model}\n${usages.join(' | ')}`);
   } catch (_e) {
