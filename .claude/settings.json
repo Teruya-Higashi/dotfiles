@@ -71,7 +71,8 @@
   },
   "outputStyle": "Explanatory",
   "language": "Japanese",
+  "effortLevel": "xhigh",
   "autoMemoryEnabled": false,
   "showThinkingSummaries": true,
-  "effortLevel": "xhigh"
+  "autoScrollEnabled": false
 }
