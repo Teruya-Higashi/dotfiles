@@ -22,7 +22,7 @@ Codex（OpenAI のコーディングエージェント）に codex plugin（`cod
 
 | オプション | デフォルト | 選択肢 | 引数内キーワード例 |
 |---|---|---|---|
-| モデル | `gpt-5.4` | `gpt-5.4`, `gpt-5.3-codex`, `spark` 等 | `--model spark` |
+| モデル | `gpt-5.5` | `gpt-5.5`, `gpt-5.4`, `gpt-5.3-codex`, `spark` 等 | `--model spark` |
 | effort | `xhigh` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh` | `--effort high` |
 | 出力ファイル | なし | 任意のファイルパス | `--output ./review.md` |
 | 実行モード | (plugin デフォルト) | `--background`, `--wait` | `--background` |
@@ -30,7 +30,7 @@ Codex（OpenAI のコーディングエージェント）に codex plugin（`cod
 
 **パース規則**:
 - `--model {値}`, `--effort {値}`, `--output {値}`, `--background`, `--wait`, `--resume`, `--fresh` を引数から抽出し、残りをタスクの説明として扱う
-- キーワードが見つからなければデフォルト値（`--model gpt-5.4 --effort xhigh`）を使用
+- キーワードが見つからなければデフォルト値（`--model gpt-5.5 --effort xhigh`）を使用
 
 **出力ファイルの扱い**:
 - `--output` が指定された場合、タスクのプロンプト末尾にファイル書き出し指示を埋め込む
@@ -69,7 +69,7 @@ Skill(
 ```
 
 **routing_flags の構築**:
-- `--model {値}` → そのまま渡す（未指定時は `--model gpt-5.4`、`spark` は plugin が `gpt-5.3-codex-spark` にマッピング）
+- `--model {値}` → そのまま渡す（未指定時は `--model gpt-5.5`、`spark` は plugin が `gpt-5.3-codex-spark` にマッピング）
 - `--effort {値}` → そのまま渡す（未指定時は `--effort xhigh`）
 - `--background` / `--wait` → そのまま渡す
 - `--resume` / `--fresh` → そのまま渡す

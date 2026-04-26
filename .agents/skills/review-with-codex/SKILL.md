@@ -26,7 +26,7 @@ Codex チャネルはプラグインのサブエージェント（`codex:codex-r
 |---|---|---|
 | レビュー対象 | `staged` | `--target working`, `--target pr`, `--target pr:develop` |
 | 出力プレフィックス | `review` | `--prefix my-review` |
-| Codex モデル | `gpt-5.4` | `--model spark` |
+| Codex モデル | `gpt-5.5` | `--model spark` |
 | Codex effort | `xhigh` | `--effort high` |
 
 **パース規則**:
@@ -200,7 +200,7 @@ Agent(
 ```
 
 **routing flag の構築**:
-- `--model {値}` → 常に付与（未指定時は `--model gpt-5.4`）。`spark` は codex-rescue が `gpt-5.3-codex-spark` にマッピング
+- `--model {値}` → 常に付与（未指定時は `--model gpt-5.5`）。`spark` は codex-rescue が `gpt-5.3-codex-spark` にマッピング
 - `--effort {値}` → 常に付与（未指定時は `--effort xhigh`）
 - `--write` → 常に付与（レビューファイル書き出しのため）
 - `--resume` / `--fresh` → このスキルでは使用しない（毎回 fresh なレビュー）
@@ -341,7 +341,7 @@ AskUserQuestion でユーザーに確認を取る:
 - `codex:codex-rescue` は `task` のみ forward する制約のため、review / adversarial 挙動はすべてプロンプトで表現する
 - レビュー専用のため、Codex チャネルのプロンプトでは **ソースコード変更を禁止** し、指定レビューファイルへの書き出しのみ許可する
 - `--write` は routing flag に常時付与する（レビューファイル書き出しのため）
-- モデル指定は Codex チャネル共通。`--model gpt-5.4`（デフォルト）、`--model spark` など
+- モデル指定は Codex チャネル共通。`--model gpt-5.5`（デフォルト）、`--model spark` など
 
 ### マージ・修正ルール
 
