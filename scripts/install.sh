@@ -19,7 +19,7 @@ brew install visual-studio-code
 brew install orbstack
 brew install claude
 brew install chatgpt
-brew install dbeaver-community
+brew install tablepro
 brew install google-japanese-ime
 
 if [ ! -e ~/.zsh ]; then
