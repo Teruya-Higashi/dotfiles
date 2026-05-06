@@ -5,7 +5,6 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_SUBAGENT_MODEL": "opus[1m]",
-    "DISABLE_TELEMETRY": "1",
     "ENABLE_TOOL_SEARCH": "true"
   },
   "attribution": {
@@ -74,5 +73,8 @@
   "effortLevel": "xhigh",
   "autoMemoryEnabled": false,
   "showThinkingSummaries": true,
-  "autoScrollEnabled": false
+  "theme": "dark-daltonized",
+  "autoCompactEnabled": true,
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true
 }
