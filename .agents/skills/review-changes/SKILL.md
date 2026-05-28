@@ -1,9 +1,9 @@
 ---
-name: code-review
+name: review-changes
 description: コードレビューを実施する。小規模 diff はメイン直接、大規模 diff は専門エージェント（正確性・セキュリティ・設計+再利用・効率）を並列で指摘候補を出し、Validation で裏取りしてからフィルタリングする。レビュー結果はユーザーに提示し、author のコードには修正提案として扱う。
 ---
 
-# Code Review
+# Review Changes
 
 diff の表面的なレビューではなく、変更の背景と影響範囲を理解した上で指摘する。
 
@@ -418,10 +418,10 @@ Phase 3 の出力後、レビュー結果のサマリーと全指摘をユーザ
 ## 例
 
 ```bash
-/code-review 5612
-/code-review https://github.com/owner/repo/pull/5612
-/code-review
-/code-review feature/foo
+/review-changes 5612
+/review-changes https://github.com/owner/repo/pull/5612
+/review-changes
+/review-changes feature/foo
 ```
 
 ## 自己改善
