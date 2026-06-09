@@ -4,7 +4,6 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const R = '\x1b[0m';
-const LABEL = '\x1b[38;2;170;170;170m';
 const BOLD = '\x1b[1m';
 
 const RINGS = ['○', '◔', '◑', '◕', '●'];
@@ -25,7 +24,7 @@ function ring(pct) {
 
 function fmt(label, pct) {
   const p = Math.round(pct);
-  return `${LABEL}${label}${R} ${gradient(pct)}${ring(pct)} ${p}%${R}`;
+  return `${label} ${gradient(pct)}${ring(pct)}${R} ${p}%`;
 }
 
 function getGitBranch(dir) {
@@ -62,7 +61,7 @@ process.stdin.on('end', () => {
     const sevenDay = data.rate_limits?.seven_day?.used_percentage;
     if (sevenDay != null) usages.push(fmt('7d:', sevenDay));
 
-    process.stdout.write(`${header}\n${model}\n${usages.join(' | ')}`);
+    process.stdout.write(`${header}\n[${model}] ${usages.join(' | ')}`);
   } catch (_e) {
     process.stdout.write('[Claude Code]');
   }
