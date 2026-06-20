@@ -15,7 +15,10 @@
     "allow": [
       "Bash",
       "Edit",
+      "Glob",
+      "Grep",
       "MultiEdit",
+      "Read",
       "WebFetch",
       "WebSearch",
       "Write",
@@ -23,7 +26,6 @@
       "mcp__serena"
     ],
     "deny": [
-      "Bash(curl *)",
       "Bash(dd *)",
       "Bash(fdisk *)",
       "Bash(git push --force *)",
@@ -35,7 +37,6 @@
       "Bash(rm *)",
       "Bash(rmdir *)",
       "Bash(sudo *)",
-      "Bash(wget *)",
       "Read(**/*key*)",
       "Read(**/*token*)",
       "Read(.env.*)",
@@ -45,7 +46,7 @@
       "Write(//**/.env*)"
     ]
   },
-  "model": "claude-fable-5[1m]",
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.js"
