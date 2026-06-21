@@ -1,6 +1,6 @@
 ---
 name: review-changes
-description: コードレビューを実施する。小規模 diff はメイン直接、大規模 diff は専門エージェント（正確性・セキュリティ・設計+再利用・効率）を並列で指摘候補を出し、Validation で裏取りしてからフィルタリングする。author のコードには修正提案、他メンバーの PR にはレビュー投稿を行う。
+description: コードレビューを行う。小規模 diff は直接、大規模 diff は専門エージェントを並列実行し、指摘候補を出し Validation で裏取りしてからフィルタリングする。
 ---
 
 # Review Changes
