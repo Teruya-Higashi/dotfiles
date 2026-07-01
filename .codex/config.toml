@@ -2,13 +2,24 @@ personality = "pragmatic"
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
 model_verbosity = "high"
+
 web_search = "live"
-sandbox_mode = "workspace-write"
-approval_policy = "never"
 show_raw_agent_reasoning = true
 
-[sandbox_workspace_write]
-network_access = true
+approval_policy = "never"
+default_permissions = "defualt"
+
+[permissions.defualt.filesystem]
+":root" = "read"
+":tmpdir" = "write"
+":slash_tmp" = "write"
+
+[permissions.defualt.filesystem.":workspace_roots"]
+"." = "write"
+".git" = "write"
+
+[permissions.defualt.network]
+enabled = true
 
 [tui]
 status_line = ["current-dir", "model-with-reasoning", "context-used", "five-hour-limit", "weekly-limit"]
@@ -26,13 +37,3 @@ enabled = false
 [features]
 unified_exec = true
 multi_agent = true
-
-[profiles.fast]
-model_reasoning_effort = "high"
-model_verbosity = "medium"
-approval_policy = "on-request"
-
-[profiles.deep]
-model_reasoning_effort = "xhigh"
-model_verbosity = "high"
-approval_policy = "untrusted"
