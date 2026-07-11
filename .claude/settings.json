@@ -30,7 +30,6 @@
       "Bash(fdisk *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
-      "Bash(mise run release *)",
       "Bash(mkfs *)",
       "Bash(nc *)",
       "Bash(rm -rf *)",
@@ -46,7 +45,7 @@
       "Write(//**/.env*)"
     ]
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.js"
@@ -57,13 +56,20 @@
     "typescript-lsp@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "freee-mcp@freee-mcp-marketplace": true
   },
   "extraKnownMarketplaces": {
     "codex-plugin": {
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "freee-mcp-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "freee/freee-mcp"
       }
     }
   },

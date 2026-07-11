@@ -1,5 +1,5 @@
 personality = "pragmatic"
-model = "gpt-5.5"
+model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
 model_verbosity = "high"
 
@@ -7,33 +7,93 @@ web_search = "live"
 show_raw_agent_reasoning = true
 
 approval_policy = "never"
-default_permissions = "defualt"
+default_permissions = "default"
 
-[permissions.defualt.filesystem]
-":root" = "read"
+[permissions.default.filesystem]
+# :minimal: コマンド実行に必要なOSランタイムパス（dyld、/usr/lib、/etcなど）。
+# ref. https://developers.openai.com/codex/permissions
+":minimal" = "read"
+"/opt/homebrew" = "read"
 ":tmpdir" = "write"
 ":slash_tmp" = "write"
 
-[permissions.defualt.filesystem.":workspace_roots"]
+[permissions.default.filesystem."/"]
+"**/.env*" = "deny"
+"**/id_ed25519" = "deny"
+"**/id_rsa" = "deny"
+"**/.ssh/**" = "deny"
+"**/secrets/**" = "deny"
+"**/*[kK][eE][yY]" = "deny"
+"**/*.[kK][eE][yY]" = "deny"
+"**/*[kK][eE][yY]*.[pP][eE][mM]" = "deny"
+"**/*[kK][eE][yY]*.[pP]12" = "deny"
+"**/*[kK][eE][yY]*.[pP][fF][xX]" = "deny"
+"**/*[kK][eE][yY]*.[jJ][kK][sS]" = "deny"
+"**/*[kK][eE][yY]*.[kK][eE][yY][sS][tT][oO][rR][eE]" = "deny"
+"**/*[kK][eE][yY]*.[jJ][sS][oO][nN]" = "deny"
+"**/*[kK][eE][yY]*.[yY][aA][mM][lL]" = "deny"
+"**/*[kK][eE][yY]*.[yY][mM][lL]" = "deny"
+"**/*[kK][eE][yY]*.[tT][oO][mM][lL]" = "deny"
+"**/*[kK][eE][yY]*.[iI][nN][iI]" = "deny"
+"**/*[kK][eE][yY]*.[cC][oO][nN][fF]" = "deny"
+"**/*[kK][eE][yY]*.[tT][xX][tT]" = "deny"
+"**/*[kK][eE][yY]*.[tT][fF][vV][aA][rR][sS]" = "deny"
+"**/*[tT][oO][kK][eE][nN]" = "deny"
+"**/*.[tT][oO][kK][eE][nN]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[jJ][sS][oO][nN]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[yY][aA][mM][lL]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[yY][mM][lL]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[tT][oO][mM][lL]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[iI][nN][iI]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[cC][oO][nN][fF]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[tT][xX][tT]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[tT][fF][vV][aA][rR][sS]" = "deny"
+"**/*[tT][oO][kK][eE][nN]*.[jJ][wW][tT]" = "deny"
+
+[permissions.default.filesystem."~"]
+"." = "read"
+".local/share/mise" = "read"
+".local/state/mise" = "write"
+".gitconfig" = "read"
+".config/git" = "read"
+".config/gh" = "read"
+
+[permissions.default.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
+".codex" = "write"
 
-[permissions.defualt.network]
+[permissions.default.network]
 enabled = true
 
 [tui]
-status_line = ["current-dir", "model-with-reasoning", "context-used", "five-hour-limit", "weekly-limit"]
+status_line = ["current-dir", "model-with-reasoning", "context-used", "five-hour-limit", "weekly-limit", "run-state"]
 theme = "one-half-dark"
+status_line_use_colors = true
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
-
-[tools]
-view_image = true
+"gpt-5.6-sol" = 4
 
 [analytics]
 enabled = false
 
-[features]
-unified_exec = true
-multi_agent = true
+[plugins."superpowers@openai-curated"]
+enabled = true
+
+[mcp_servers.serena]
+command = "mise"
+args = [
+  "x",
+  "--",
+  "uvx",
+  "--from",
+  "git+https://github.com/oraios/serena",
+  "serena",
+  "start-mcp-server",
+  "--enable-web-dashboard",
+  "false",
+  "--context",
+  "codex",
+]

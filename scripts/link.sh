@@ -19,7 +19,7 @@ ln -s $(pwd)/.vimrc ~/.vimrc
 
 mkdir -p ~/.agents
 mkdir -p ~/.claude
-mkdir -p ~/.codex
+mkdir -p ~/.codex/rules
 mkdir -p ~/.config/git
 mkdir -p ~/.config/mise/conf.d
 
@@ -28,6 +28,7 @@ ln -sf $(pwd)/.agents/skills ~/.claude
 ln -sf $(pwd)/.claude/settings.json ~/.claude/settings.json
 ln -sf $(pwd)/.claude/statusline.js ~/.claude/statusline.js && chmod +x ~/.claude/statusline.js
 ln -sf $(pwd)/.codex/config.toml ~/.codex/config.toml
+ln -sf $(pwd)/.codex/rules/*.rules ~/.codex/rules/
 ln -sf $(pwd)/.takt ~/.takt
 ln -sf $(pwd)/.config/git/ignore ~/.config/git/ignore
 ln -sf $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml

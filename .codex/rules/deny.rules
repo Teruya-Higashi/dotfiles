@@ -1,0 +1,72 @@
+# Claude Code (.claude/settings.json permissions.deny) から移植したコマンド禁止ルール。
+# approval_policy = "never" のため prompt は自動拒否になる。deny 相当はすべて forbidden を使う。
+# 複数ルールがマッチした場合は最も厳しい判定が勝つ (forbidden > prompt > allow) ので、
+# default.rules に自動追記された allow ルールより常に優先される。
+#
+# 制約: prefix_rule は argv の位置つき前方一致。`git push origin --force` のように
+# フラグが後ろに来る形や、複雑なシェルスクリプト経由の呼び出しは一致しない
+# (Claude Code の glob パターンと同等の制約)。
+
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "特権操作は禁止。必要ならユーザーに手動実行を依頼する。",
+    match = ["sudo ls", "sudo rm -rf /"],
+    not_match = ["ls"],
+)
+
+prefix_rule(
+    pattern = ["rm"],
+    decision = "forbidden",
+    justification = "rm による削除は禁止。削除が必要な場合はユーザーに依頼する。",
+    match = ["rm file.txt", "rm -rf node_modules"],
+    not_match = ["rmdir empty_dir"],
+)
+
+prefix_rule(
+    pattern = ["rmdir"],
+    decision = "forbidden",
+    justification = "ディレクトリ削除は禁止。必要な場合はユーザーに依頼する。",
+    match = ["rmdir empty_dir"],
+    not_match = ["rm -r dir"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f"]],
+    decision = "forbidden",
+    justification = "force push は禁止。必要なら --force-with-lease をユーザーが実行する。",
+    match = ["git push --force origin main", "git push -f origin main"],
+    not_match = ["git push origin main", "git push --force-with-lease origin main"],
+)
+
+prefix_rule(
+    pattern = ["dd"],
+    decision = "forbidden",
+    justification = "ディスクへの直接書き込みは禁止。",
+    match = ["dd if=/dev/zero of=/dev/disk0"],
+    not_match = ["date"],
+)
+
+prefix_rule(
+    pattern = ["fdisk"],
+    decision = "forbidden",
+    justification = "パーティション操作は禁止。",
+    match = ["fdisk /dev/disk0"],
+    not_match = ["df -h"],
+)
+
+prefix_rule(
+    pattern = ["mkfs"],
+    decision = "forbidden",
+    justification = "ファイルシステム作成は禁止。",
+    match = ["mkfs /dev/disk0"],
+    not_match = ["mkdir -p tmp"],
+)
+
+prefix_rule(
+    pattern = ["nc"],
+    decision = "forbidden",
+    justification = "netcat による任意接続は禁止。HTTP は curl を使う。",
+    match = ["nc -l 8080", "nc example.com 80"],
+    not_match = ["ncdu"],
+)

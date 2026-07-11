@@ -17,8 +17,8 @@ brew install mise
 brew install rectangle
 brew install visual-studio-code
 brew install orbstack
-brew install claude
 brew install chatgpt
+brew install codex-app
 brew install tablepro
 brew install google-japanese-ime
 
@@ -34,5 +34,5 @@ curl -o ~/.zsh/git-prompt.zsh https://raw.githubusercontent.com/woefe/zsh-git-pr
 
 mise install
 mise x -- playwright-cli install --skills
-
 mise x -- claude mcp add serena -s user -- mise x -- uvx --from "git+https://github.com/oraios/serena" serena start-mcp-server --enable-web-dashboard false --context ide-assistant
+mise x -- codex plugin add superpowers@openai-curated

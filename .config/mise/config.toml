@@ -9,6 +9,7 @@ gcloud = "latest"
 "aqua:hashicorp/terraform" = "latest"
 "aqua:claude-code" = "latest"
 "aqua:openai/codex" = "latest"
+"aqua:BurntSushi/ripgrep" = "latest"
 
 "npm:takt" = "latest"
 "npm:difit" = "latest"
