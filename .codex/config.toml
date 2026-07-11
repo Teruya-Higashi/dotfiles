@@ -57,6 +57,9 @@ default_permissions = "default"
 ".gitconfig" = "read"
 ".config/git" = "read"
 ".config/gh" = "read"
+"Library/Caches/mise" = "write"
+"Library/Caches/hk" = "write"
+"Library/Caches/go-build" = "write"
 
 [permissions.default.filesystem.":workspace_roots"]
 "." = "write"
