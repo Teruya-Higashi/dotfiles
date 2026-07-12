@@ -16,14 +16,20 @@ extends = ":workspace"
 
 [permissions."default".filesystem]
 # :workspace が持つワークスペース外への読み取りを拒否。
-# 以降のより具体的なパスだけを例外として許可する。
+# 以降のより具体的なパスだけを許可。
 ":root" = "deny"
 
 # :minimal: コマンド実行に必要なOSランタイムパス（dyld、/usr/lib、/etcなど）。
 # ref. https://developers.openai.com/codex/permissions
 ":minimal" = "read"
-
 "/usr/local/bin" = "read"
+
+# tmp directory
+":tmpdir" = "write"
+":slash_tmp" = "write"
+
+# SSL
+"/System/Library/OpenSSL/openssl.cnf" = "read"
 
 # Homebrew
 "/opt/homebrew" = "read"
@@ -32,14 +38,13 @@ extends = ":workspace"
 "/Library/Developer/CommandLineTools" = "read"
 "/Applications/Xcode.app/Contents/Developer" = "read"
 
-# tmp directory
-":tmpdir" = "write"
-":slash_tmp" = "write"
-
 # git
 "~/.gitconfig" = "read"
 "~/.config/git" = "read"
 "~/.config/gh" = "read"
+# gh が macOS Keychain に保存した OAuth token の取得に必要。
+# Codex の権限では Keychain 内の資格情報ごとに読み取りを制限できないため、ディレクトリ単位で許可。
+"~/Library/Keychains" = "read"
 
 # mise
 "~/.local/share/mise" = "write"
