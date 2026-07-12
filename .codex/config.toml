@@ -9,66 +9,77 @@ show_raw_agent_reasoning = true
 approval_policy = "never"
 default_permissions = "default"
 
-[permissions.default.filesystem]
+developer_instructions = "ユーザーへの応答は日本語で行う。"
+
+[permissions."default"]
+extends = ":workspace"
+
+[permissions."default".filesystem]
+# :workspace が持つワークスペース外への読み取りを拒否。
+# 以降のより具体的なパスだけを例外として許可する。
+":root" = "deny"
+
 # :minimal: コマンド実行に必要なOSランタイムパス（dyld、/usr/lib、/etcなど）。
 # ref. https://developers.openai.com/codex/permissions
 ":minimal" = "read"
+
+# Homebrew
 "/opt/homebrew" = "read"
+
+# macOS developer tools
+"/Library/Developer/CommandLineTools" = "read"
+"/Applications/Xcode.app/Contents/Developer" = "read"
+
+# tmp directory
 ":tmpdir" = "write"
 ":slash_tmp" = "write"
 
-[permissions.default.filesystem."/"]
-"**/.env*" = "deny"
-"**/id_ed25519" = "deny"
-"**/id_rsa" = "deny"
-"**/.ssh/**" = "deny"
-"**/secrets/**" = "deny"
-"**/*[kK][eE][yY]" = "deny"
-"**/*.[kK][eE][yY]" = "deny"
-"**/*[kK][eE][yY]*.[pP][eE][mM]" = "deny"
-"**/*[kK][eE][yY]*.[pP]12" = "deny"
-"**/*[kK][eE][yY]*.[pP][fF][xX]" = "deny"
-"**/*[kK][eE][yY]*.[jJ][kK][sS]" = "deny"
-"**/*[kK][eE][yY]*.[kK][eE][yY][sS][tT][oO][rR][eE]" = "deny"
-"**/*[kK][eE][yY]*.[jJ][sS][oO][nN]" = "deny"
-"**/*[kK][eE][yY]*.[yY][aA][mM][lL]" = "deny"
-"**/*[kK][eE][yY]*.[yY][mM][lL]" = "deny"
-"**/*[kK][eE][yY]*.[tT][oO][mM][lL]" = "deny"
-"**/*[kK][eE][yY]*.[iI][nN][iI]" = "deny"
-"**/*[kK][eE][yY]*.[cC][oO][nN][fF]" = "deny"
-"**/*[kK][eE][yY]*.[tT][xX][tT]" = "deny"
-"**/*[kK][eE][yY]*.[tT][fF][vV][aA][rR][sS]" = "deny"
-"**/*[tT][oO][kK][eE][nN]" = "deny"
-"**/*.[tT][oO][kK][eE][nN]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[jJ][sS][oO][nN]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[yY][aA][mM][lL]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[yY][mM][lL]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[tT][oO][mM][lL]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[iI][nN][iI]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[cC][oO][nN][fF]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[tT][xX][tT]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[tT][fF][vV][aA][rR][sS]" = "deny"
-"**/*[tT][oO][kK][eE][nN]*.[jJ][wW][tT]" = "deny"
+# git
+"~/.gitconfig" = "read"
+"~/.config/git" = "read"
+"~/.config/gh" = "read"
 
-[permissions.default.filesystem."~"]
-"." = "read"
-".local/share/mise" = "read"
-".local/state/mise" = "write"
-".gitconfig" = "read"
-".config/git" = "read"
-".config/gh" = "read"
-"Library/Caches/mise" = "write"
-"Library/Caches/hk" = "write"
-"Library/Caches/go-build" = "write"
+# mise
+"~/.local/share/mise" = "write"
+"~/.local/state/mise" = "write"
+"~/Library/Caches/mise" = "write"
 
-[permissions.default.filesystem.":workspace_roots"]
+# Go
+"~/go/pkg/mod" = "write"
+"~/Library/Caches/go-build" = "write"
+"~/Library/Application Support/go/env" = "read"
+"~/Library/Application Support/go/telemetry" = "write"
+
+# TypeScript
+"~/.npm" = "write"
+"~/Library/pnpm" = "write"
+"~/Library/Caches/pnpm" = "write"
+
+# AI
+"~/.agents" = "read"
+"~/.codex/skills" = "read"
+"~/.codex/plugins" = "read"
+
+# Docker
+"~/.docker/config.json" = "read"
+"~/.docker/cli-plugins" = "read"
+"~/.docker/buildx" = "write"
+
+[permissions."default".filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
 ".agents" = "write"
 ".codex" = "write"
 
-[permissions.default.network]
+"**/gha-creds-*.json" = "deny"
+"**/.env*" = "deny"
+
+[permissions."default".network]
 enabled = true
+allow_local_binding = true
+
+[permissions."default".network.unix_sockets]
+"/var/run/docker.sock" = "allow"
 
 [tui]
 status_line = ["current-dir", "model-with-reasoning", "context-used", "five-hour-limit", "weekly-limit", "run-state"]
