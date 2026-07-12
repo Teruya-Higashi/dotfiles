@@ -23,6 +23,8 @@ extends = ":workspace"
 # ref. https://developers.openai.com/codex/permissions
 ":minimal" = "read"
 
+"/usr/local/bin" = "read"
+
 # Homebrew
 "/opt/homebrew" = "read"
 
