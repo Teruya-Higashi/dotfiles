@@ -73,7 +73,7 @@ extends = ":workspace"
 "." = "write"
 ".git" = "write"
 ".agents" = "write"
-".codex" = "write"
+".codex" = "read"
 
 "**/gha-creds-*.json" = "deny"
 "**/.env*" = "deny"
