@@ -1,11 +1,13 @@
 ---
-name: review-changes
+name: review-patch
 description: コードレビューを行う。小規模 diff は直接、大規模 diff は専門エージェントを並列実行し、指摘候補を出し Validation で裏取りしてからフィルタリングする。
 ---
 
-# Review Changes
+# Review Patch
 
 diff の表面的なレビューではなく、変更の背景と影響範囲を理解した上で指摘する。
+
+**REQUIRED SUB-SKILL:** PR 番号・URLを扱う場合や、GitHub からの情報取得・レビュー投稿などで `gh` を使う場合は、`gh-ops` を読み、そのルールに従う。
 
 ## 入力
 
@@ -517,10 +519,10 @@ Phase 3 の出力後、呼び出しコンテキストに応じてアクション
 ## 例
 
 ```bash
-/review-changes 5612
-/review-changes https://github.com/owner/repo/pull/5612
-/review-changes
-/review-changes feature/foo
+/review-patch 5612
+/review-patch https://github.com/owner/repo/pull/5612
+/review-patch
+/review-patch feature/foo
 ```
 
 ## 自己改善
