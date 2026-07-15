@@ -35,21 +35,21 @@ Codex チャネルは plugin（`codex:codex-rescue`）を経由せず、`codex` 
 |---|---|---|
 | 出力プレフィックス | `plan` | `--prefix my-plan` |
 | Codex モデル | `gpt-5.6-sol` | `--model gpt-5.4` |
-| Codex effort | `xhigh` | `--effort high`, `--effort max` |
+| Codex effort | `high` | `--effort xhigh`, `--effort max` |
 
 **パース規則**:
 - `--prefix {値}`, `--model {値}`, `--effort {値}` を引数から抽出し、残りをタスクの説明として扱う
-- キーワードが見つからなければデフォルト値（`--model gpt-5.6-sol --effort xhigh`）を使用
+- キーワードが見つからなければデフォルト値（`--model gpt-5.6-sol --effort high`）を使用
 
 **Codex CLI へのマッピング**:
 - `--model {値}` → `codex exec` の `-m {値}`（指定値をそのまま渡す。未指定時は `gpt-5.6-sol`）
-- `--effort {値}` → `-c model_reasoning_effort="{値}"`（未指定時は `xhigh`）
+- `--effort {値}` → `-c model_reasoning_effort="{値}"`（未指定時は `high`）
 - plan ファイルへの書き出しは `-o {ファイル}`（エージェントの最終メッセージをファイルに書き出す）
 
 ### effort の使い分け
 
-- `xhigh`（デフォルト）: 複数ファイル・複数レイヤーの調査を含む通常の計画作成
-- `high`: 対象範囲が狭く、既存パターンが明確な計画で反復速度を優先する場合
+- `high`（デフォルト）: 複数ファイル・複数レイヤーの調査を含む通常の計画作成
+- `xhigh`: 複雑な計画や、より深い推論が必要な場合の明示的な上書き
 - `max`: 大規模移行、複雑なデータフロー、セキュリティ境界を含む計画など、最深の単一実行推論が必要な場合
 
 ```text
@@ -252,7 +252,7 @@ EOF
 
 **CLI フラグの構築**:
 - `-m {値}` → 常に付与（指定値をそのまま渡す。未指定時は `gpt-5.6-sol`）
-- `-c model_reasoning_effort="{値}"` → 常に付与（未指定時は `xhigh`）
+- `-c model_reasoning_effort="{値}"` → 常に付与（未指定時は `high`）
 - `-o {prefix}-codex_{sequence_number}.md` → 常に付与（plan ファイル書き出しのため）
 - サンドボックス・承認は `~/.codex/config.toml` に従う（`workspace-write` / `never` 前提）
 

@@ -22,7 +22,6 @@
       "WebFetch",
       "WebSearch",
       "Write",
-      "mcp__context7__resolve-library-id",
       "mcp__serena"
     ],
     "deny": [
@@ -41,8 +40,8 @@
       "Read(.env.*)",
       "Read(//**/id_ed25519)",
       "Read(//**/id_rsa)",
-      "Write(//**/secrets/**)",
-      "Write(//**/.env*)"
+      "Edit(//**/secrets/**)",
+      "Edit(//**/.env*)"
     ]
   },
   "model": "claude-fable-5[1m]",
