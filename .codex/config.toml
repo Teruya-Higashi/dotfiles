@@ -64,6 +64,9 @@ extends = ":workspace"
 "~/.docker/cli-plugins" = "read"
 "~/.docker/buildx" = "write"
 
+# gcloud
+"~/.config/gcloud" = "write"
+
 [permissions."default".filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
