@@ -15,12 +15,7 @@ developer_instructions = "ユーザーへの応答は日本語で行う。"
 extends = ":workspace"
 
 [permissions."default".filesystem]
-# :workspace が持つワークスペース外への読み取りを拒否。
-# 以降のより具体的なパスだけを許可。
 ":root" = "deny"
-
-# :minimal: コマンド実行に必要なOSランタイムパス（dyld、/usr/lib、/etcなど）。
-# ref. https://developers.openai.com/codex/permissions
 ":minimal" = "read"
 "/usr/local/bin" = "read"
 
