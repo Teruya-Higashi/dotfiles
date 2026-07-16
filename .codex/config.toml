@@ -67,6 +67,12 @@ extends = ":workspace"
 # gcloud
 "~/.config/gcloud" = "write"
 
+# aws
+"~/.aws" = "write"
+
+# terraform
+"~/.terraform.d " = "read"
+
 # dotfiles
 "~/projects/dotfiles" = "read"
 
