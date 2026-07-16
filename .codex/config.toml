@@ -67,6 +67,9 @@ extends = ":workspace"
 # gcloud
 "~/.config/gcloud" = "write"
 
+# dotfiles
+"~/projects/dotfiles" = "read"
+
 [permissions."default".filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
