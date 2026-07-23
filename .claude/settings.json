@@ -17,29 +17,31 @@
       "Edit",
       "Glob",
       "Grep",
-      "MultiEdit",
       "Read",
       "WebFetch",
       "WebSearch",
       "Write",
       "mcp__serena"
     ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(rmdir *)"
+    ],
     "deny": [
       "Bash(dd *)",
       "Bash(fdisk *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
+      "Bash(git push * --force *)",
+      "Bash(git push * -f *)",
       "Bash(mkfs *)",
       "Bash(nc *)",
-      "Bash(rm -rf *)",
-      "Bash(rm *)",
-      "Bash(rmdir *)",
       "Bash(sudo *)",
-      "Read(**/*key*)",
-      "Read(**/*token*)",
-      "Read(.env.*)",
+      "Read(//**/*.key)",
+      "Read(//**/.env*)",
       "Read(//**/id_ed25519)",
       "Read(//**/id_rsa)",
+      "Read(//**/secrets/**)",
       "Edit(//**/secrets/**)",
       "Edit(//**/.env*)"
     ]

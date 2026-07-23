@@ -73,6 +73,9 @@ extends = ":workspace"
 # terraform
 "~/.terraform.d " = "read"
 
+# crit
+"~/.crit" = "write"
+
 # dotfiles
 "~/projects/dotfiles" = "read"
 
