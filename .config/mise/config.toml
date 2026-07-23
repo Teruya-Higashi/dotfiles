@@ -14,3 +14,5 @@ gcloud = "latest"
 "npm:takt" = "latest"
 "npm:difit" = "latest"
 "npm:@playwright/cli" = "latest"
+
+"github:tomasz-tomczyk/crit" = "latest"
