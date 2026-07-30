@@ -179,6 +179,22 @@ gh pr edit "{pr_number}" \
   --body-file "$pr_body_file"
 ```
 
+#### Stacked PR
+
+- ユーザーが **Stacked PR** または **`gh stack` の利用**を明示した場合に限り、公式の `gh-stack` 拡張を使う
+- 親子関係を推測できる場合でも、明示指定がなければ通常の `gh pr create` を使う
+- 外部管理しているブランチをStack化するときは、親から子の順に `gh stack link` へ渡す。ブランチのpush、PR作成、base設定はこのコマンドに任せる
+- Ready for review の明示指定がある場合だけ `--open` を付ける
+
+```bash
+gh stack link {Ready指定時のみ: --open} \
+  --remote "{head_remote}" \
+  "{parent_pr_or_branch}" \
+  "$branch"
+```
+
+作成後は通常のPRと同様にタイトル・本文をテンプレートへ合わせ、`gh pr view` でbase/head、Draft状態、本文を検証する。加えて `gh stack view --json` でStack内の親子関係を検証する。
+
 ### 8. 作成結果の確認
 
 ```bash

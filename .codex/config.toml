@@ -45,6 +45,7 @@ extends = ":workspace"
 
 # Go
 "~/go/pkg/mod" = "write"
+"~/go/pkg/sumdb" = "write"
 "~/Library/Caches/go-build" = "write"
 "~/Library/Application Support/go/env" = "read"
 "~/Library/Application Support/go/telemetry" = "write"
@@ -71,13 +72,13 @@ extends = ":workspace"
 "~/.aws" = "write"
 
 # terraform
-"~/.terraform.d " = "read"
+"~/.terraform.d " = "write"
 
 # crit
 "~/.crit" = "write"
 
 # dotfiles
-"~/projects/dotfiles" = "read"
+"~/projects/dotfiles" = "write"
 
 [permissions."default".filesystem.":workspace_roots"]
 "." = "write"
