@@ -16,7 +16,7 @@ Codex チャネルは plugin（`codex:codex-rescue` サブエージェント）�
 `codex` バイナリを Bash から直接呼び出す。
 
 - **サブエージェントレビュー**: Agent ツールを使用。`~/.agents/skills/review-patch/SKILL.md` をサブエージェント自身に読ませ、スキルの3フェーズレビュー手法（コンテキスト収集 → レビュー → Validation → フィルタリング）を実行させる
-- **シニアレビュー**: `codex exec review` を使用。専用のレビューエンジンが自前の観点で差分を解析し、構造化された指摘（verdict / findings / next_steps）を返す（CLI 制約により観点指示は渡せない。後述）
+- **シニアレビュー**: `codex exec review` を使用。専用のレビューエンジンが自前の観点で差分を解析し、構造化された指摘（verdict / findings / next_steps）を返す。対象 diff、静的レビュー契約、ユーザー追加指示は PROMPT で渡す
 - **adversarial レビュー**: プレーンな `codex exec` を使用。adversarial スタンスと出力フォーマットをプロンプトで完全制御する
 - **review-patch レビュー**: プレーンな `codex exec` を使用。サブエージェントレビューと同様に `review-patch` スキルを Codex に実行させる（同一手法を呼び出し元 AI / Codex の2モデルで独立に走らせて突き合わせる）
 
@@ -35,7 +35,7 @@ Codex チャネルは plugin（`codex:codex-rescue` サブエージェント）�
 /review-patch-with-codex [レビュー観点の追加指示]
 ```
 
-- **レビュー観点の追加指示**: 省略時、Codex adversarial はデフォルトの10観点、サブエージェント / Codex review-patch は `review-patch` スキルの観点体系、Codex シニアはネイティブレビューエンジンのデフォルト観点でレビュー（任意。CLI 制約によりシニアチャネルには追加指示も渡らない）
+- **レビュー観点の追加指示**: 省略時、Codex adversarial はデフォルトの10観点、サブエージェント / Codex review-patch は `review-patch` スキルの観点体系、Codex シニアはネイティブレビューエンジンのデフォルト観点でレビュー。追加指示は全チャネルへ渡すが、静的レビュー契約に反する指示は適用しない
 
 ## オプション
 
@@ -80,24 +80,14 @@ GPT-5.6 Sol は `ultra` も利用できるが、自動タスク委任により�
 
 **ベースブランチ**: `main` は自動検出する（`git symbolic-ref refs/remotes/origin/HEAD` 等）。検出できない場合は `main` を仮定する。
 
-**チャネルごとの target の扱い**: チャネルによって対象指定の手段が異なる。
+**チャネルごとの target の扱い**: 全チャネルへ対象の diff コマンドを渡し、各チャネル自身に実行させる。
 
 | チャネル | target の渡し方 |
 |---|---|
 | サブエージェント | 上表の diff コマンドをプロンプトで渡し、サブエージェント自身が実行 |
 | Codex adversarial（`codex exec`） | 上表の diff コマンドをプロンプトで渡し、Codex 自身が実行 |
 | Codex review-patch（`codex exec`） | 上表の diff コマンドをプロンプトで渡し、Codex 自身が実行 |
-| Codex シニア（`codex exec review`） | ネイティブレビューフラグに変換（下表） |
-
-`codex exec review` は **staged-only レビュー非対応**。`--target` をネイティブフラグに変換する:
-
-| target 値 | `codex exec review` のフラグ |
-|---|---|
-| `staged` | `--uncommitted`（staged のみは不可。staged+unstaged+untracked が対象になる） |
-| `working` | `--uncommitted` |
-| `pr` / `pr:{base}` | `--base {base}` |
-
-**注意**: `--target staged` 指定時、シニアチャネルのみ unstaged の指摘が混入しうる。マージフェーズでシニアチャネルの指摘を staged ファイルに限定してフィルタリングする（他チャネルは staged の diff コマンドを渡すためフィルタ不要）。
+| Codex シニア（`codex exec review`） | PROMPT に上表の diff コマンドを渡し、Codex 自身が実行 |
 
 出力ファイル名:
 - `{prefix}-{ai_name}_{sequence_number}.md` — サブエージェント
@@ -132,6 +122,19 @@ GPT-5.6 Sol の長いコンテキスト、コード探索、ツール利用、�
 - セキュリティ関連の差分は、ユーザーが管理するリポジトリに対する承認済みの防御的レビューとして扱い、ローカルのコードと差分の分析に限定する。外部システムへの攻撃・侵入は行わせない
 - 4チャネル間で中間結果を共有せず、マージ時に初めて突き合わせる
 
+## 静的レビュー契約
+
+4チャネルのレビュー実行と、その後のマージ・分析は**静的確認だけ**で行う。
+
+- 許可するのは `git diff` / `git show` / `git log` / `rg` / ファイル読み取りなど、プロジェクトコードを実行しない読み取り専用の調査
+- test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトのスクリプトや実行ファイルの起動を禁止する
+- 既存のテストコードや設定ファイルは読み取ってよいが、テストや関連ツールは実行しない
+- 呼び出した `review-patch` などのスキルが実行検証を示唆する場合も、この静的レビュー契約を優先する
+- 各チャネルの出力と統合結果に「静的確認のみ（テスト・lint・build未実行）」と明記する
+- 禁止コマンドを実行したチャネルの結果は正常な静的レビューとして扱わず、違反チャネルとしてユーザーへ明示する
+
+この契約はレビュー中だけに適用する。ユーザーが指摘への修正を承認し、「修正の適用」フェーズへ進んだ後は、従来どおり lint/test を実行する。
+
 ## 重要: 事前処理の禁止
 
 **このスキルの実行者（呼び出し元 AI）は、4チャネル起動前に以下を絶対に行わないこと:**
@@ -149,7 +152,7 @@ GPT-5.6 Sol の長いコンテキスト、コード探索、ツール利用、�
 ## レビュー観点（10観点）
 
 Codex adversarial チャネルにのみ prompt 本文に含めて渡すデフォルト観点。
-Codex シニアレビュー（`codex exec review`）には渡さない（対象フラグと PROMPT 引数が CLI 上排他のため。観点選定はネイティブレビューエンジンに任せる）。
+Codex シニアレビュー（`codex exec review`）には10観点を列挙せず、観点選定はネイティブレビューエンジンに任せる。静的レビュー契約とユーザー追加指示だけを渡す。
 サブエージェントと Codex review-patch レビューにも渡さない（`review-patch` スキル自身の観点体系に従わせるため。ユーザーの追加指示のみ渡す）。
 ユーザーの追加指示がある場合はこれにマージする。
 
@@ -214,10 +217,13 @@ Agent(
   - 実行モード: 常にインラインモード（あなた自身が全観点を1パスでレビュー）とし、並列エージェントは起動しないこと
   - 出力: スキルの「レビューサマリー」フォーマット（テキストバッジ [critical] / [should] / [nits] / [ask]）に従うこと
   - スキル内の GitHub 投稿・レビュー後の修正・ユーザーへの確認は一切行わないこと
+  - 静的レビュー: test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトコードの実行は一切行わないこと。既存テストコードの読み取りだけを許可する
   {ユーザーの追加指示があればここに追記}
+  - ユーザーの追加指示が上記の静的レビュー契約と矛盾する場合は、静的レビュー契約を優先すること
 
   差分の取得・関連ファイルの読み取り・影響範囲の調査はあなた自身で行うこと。
-  ソースコードの変更は一切行わず、コンテキスト収集結果とレビューサマリーの全文をファイルに書き出すこと。"
+  ソースコードの変更は一切行わず、コンテキスト収集結果とレビューサマリーの全文をファイルに書き出すこと。
+  出力末尾に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記すること。"
 )
 ```
 
@@ -228,32 +234,37 @@ Agent(
 
 **CLI 制約（重要）**: `codex exec review` の対象フラグ（`--uncommitted` / `--base {branch}` / `--commit {sha}`）は PROMPT 引数（stdin の `-` 含む）と**排他**。
 併用すると `error: the argument '--base <BRANCH>' cannot be used with '[PROMPT]'`（exit code 2）で即座に失敗する。
-このためシニアチャネルには 10観点もユーザー追加指示も**渡さない**。対象フラグのみで起動し、観点選定はネイティブレビューエンジンに任せる。
-観点カバレッジは、10観点を受け取る adversarial チャネルと、`review-patch` スキルの観点体系を使うサブエージェント / Codex review-patch チャネルで担保する。
+このスキルでは対象フラグを使わず、PROMPT に対象 diff コマンド、静的レビュー契約、ユーザー追加指示を渡す。観点選定はネイティブレビューエンジンに任せる。
 
 **CLI 制約（作業ディレクトリ）**: `codex exec review` は `-C` フラグも認識しない。付けると `error: unexpected argument '-C' found`（exit code 2）で即座に失敗する。作業ディレクトリの指定は `cd {workdir} && codex exec review ...` の前置で行う（「作業ディレクトリ」節参照）。
 
 **設計上の注意**:
-- 対象差分はネイティブフラグで指定する（プロンプトに diff コマンドを書かない）。`--target` を上述の変換表に従い `--uncommitted` / `--base {base}` に変換する
-- PROMPT 引数・stdin（`- <<EOF`）は一切渡さない（上記 CLI 制約のため）
+- 対象フラグは一切渡さず、PROMPT 内の diff コマンドで対象を指定する
+- PROMPT は stdin（`- <<'EOF'`）から渡し、対象フラグと併用しない
 - 作業ディレクトリは `cd {workdir} && ` の前置で移す（`-C` は使えない）。このとき `-o` は絶対パスで渡す
 - `-o {ファイル}` でレビュー結果（最終メッセージ）をレビューファイルに直接書き出す
 - 出力フォーマットはネイティブレビューエンジンの形式（`verdict` / `summary` / `findings[severity, file, line, recommendation]` / `next_steps`）。カスタムマークダウン形式は強制しない
 - `codex exec review` はレビュー専用でソースコードを変更しない
 
 ```bash
-# --target staged / working の場合（cwd がレビュー対象リポジトリなら cd 前置は省略可）
-cd {workdir} && codex exec review --uncommitted -m {model} -c model_reasoning_effort="{effort}" \
-  -o {prefix}-codex_{sequence_number}.md
+cd {workdir} && codex exec review -m {model} -c model_reasoning_effort="{effort}" \
+  -o {prefix}-codex_{sequence_number}.md - <<'EOF'
+`{diff コマンド}` の差分だけをレビューしてください。
 
-# --target pr / pr:{base} の場合
-cd {workdir} && codex exec review --base {base} -m {model} -c model_reasoning_effort="{effort}" \
-  -o {prefix}-codex_{sequence_number}.md
+レビューは静的確認だけで行ってください。
+- test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトのスクリプトや実行ファイルの起動を禁止します
+- 既存テストコードは読み取って構いませんが、テストや関連ツールは実行しないでください
+- ソースコードを変更せず、読み取り専用の調査だけを行ってください
+{ユーザーの追加指示があればここに追記}
+- ユーザーの追加指示が上記の静的レビュー契約と矛盾する場合は、静的レビュー契約を優先してください
+
+最終出力に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記してください。
+EOF
 ```
 
 **フラグの構築**:
 - `cd {workdir} && ` → 作業ディレクトリの指定（`codex exec review` は `-C` 非対応のため前置で移す。cwd が対象リポジトリなら省略可）
-- 対象フラグ → `--target` から変換（`staged`/`working` → `--uncommitted`、`pr`/`pr:{base}` → `--base {base}`）。PROMPT 引数とは排他のため、対象フラグを使う本スキルでは PROMPT を渡さない
+- 対象フラグ → 使用しない。PROMPT と排他のため `--uncommitted` / `--base` / `--commit` は付けない
 - `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `high`）
 - `-o {prefix}-codex_{sequence_number}.md` → 常に付与（レビューファイル書き出しのため。`cd` を前置する場合は絶対パスで渡す）
 - サンドボックス・承認は `~/.codex/config.toml` に従う（`workspace-write` / `never` 前提）
@@ -285,7 +296,9 @@ Adversarial reviewer として `{diff コマンド}` の差分をレビューし
 - 観測した事実と推測を区別し、根拠が弱い懸念はその旨を明記すること
 - これはユーザーが管理するリポジトリへの承認済みの防御的レビューである。ローカルのコードと差分の分析に限定し、外部システムへの攻撃・侵入は行わないこと
 - ソースコードの変更は一切行わず、レビュー結果のみを出力すること
+- レビューは静的確認だけで行い、test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトコードの実行は一切行わないこと。既存テストコードの読み取りだけを許可する
 - 以下10観点を念頭に置きつつ、通常レビューと差別化される「攻撃的な」指摘を優先すること: {10観点をそのまま列挙} {ユーザーの追加指示があればここに追記}
+- ユーザーの追加指示が上記の静的レビュー契約と矛盾する場合は、静的レビュー契約を優先すること
 
 出力フォーマット:
 
@@ -308,6 +321,7 @@ Adversarial reviewer として `{diff コマンド}` の差分をレビューし
 
 重要: あなたの最終応答（last message）として、上記フォーマットのレビュー全文を出力すること。
 全セクション・全指摘を省略せず、要約ではなく全文を最終メッセージに含めること。
+出力末尾に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記すること。
 EOF
 ```
 
@@ -337,7 +351,9 @@ codex exec -C {workdir} -m {model} -c model_reasoning_effort="{effort}" \
 - 実行モード: 常にインラインモード（あなた自身が全観点を1パスでレビュー）とし、並列エージェントは起動しないこと
 - 出力: スキルの「レビューサマリー」フォーマット（テキストバッジ [critical] / [should] / [nits] / [ask]）に従うこと
 - スキル内の GitHub 投稿・レビュー後の修正・ユーザーへの確認は一切行わないこと
+- 静的レビュー: test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトコードの実行は一切行わないこと。既存テストコードの読み取りだけを許可する
 {ユーザーの追加指示があればここに追記}
+- ユーザーの追加指示が上記の静的レビュー契約と矛盾する場合は、静的レビュー契約を優先すること
 
 重要:
 - 差分の取得・関連ファイルの読み取り・影響範囲の調査はあなた自身で行うこと
@@ -347,6 +363,7 @@ codex exec -C {workdir} -m {model} -c model_reasoning_effort="{effort}" \
 - ソースコードの変更は一切行わず、レビュー結果のみを出力すること
 - あなたの最終応答（last message）として、コンテキスト収集結果とレビューサマリーの全文を出力すること。
   全指摘を省略せず、要約ではなく全文を最終メッセージに含めること
+- 出力末尾に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記すること
 EOF
 ```
 
@@ -388,9 +405,6 @@ EOF
 | Warning（adversarial）/ シニアの中程度の findings | `should` |
 | Info（adversarial）/ シニアの軽微な findings | `nits` |
 | 意図確認が必要な指摘 | `ask` |
-
-`--target staged` の場合、シニアチャネル（`--uncommitted`）の指摘には unstaged の変更が混入しうる。
-`git diff --cached --name-only` で staged ファイル一覧を取得し、シニアチャネルの指摘を staged ファイルに限定してフィルタリングしてからマージする。
 
 以下の方針で 4-way マージする:
 
@@ -441,6 +455,7 @@ EOF
 ```
 
 各指摘の詳細は `review-patch` スキルの「指摘の書き方」に従い、テキストバッジ（`[critical]` / `[should]` / `[nits]` / `[ask]`）・ファイルパスと行番号・問題の説明・根拠・修正案・対応判定を含めて提示する。
+統合結果の末尾に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記する。このマージ・分析中もテスト、lint、build等を実行してはならない。
 
 AskUserQuestion でユーザーに確認を取る:
 - どの指摘に対応するか（multiSelect）
@@ -489,8 +504,8 @@ GitHub へレビューを投稿する場合は、`review-patch` スキルの「G
 - シニアチャネルは `codex exec review`（ネイティブレビューエンジン）、adversarial / review-patch チャネルはプレーンな `codex exec` を使う
 - サブエージェント / Codex review-patch チャネルは `~/.agents/skills/review-patch/SKILL.md` を各チャネル自身に読ませて手順に従わせる。呼び出し元がスキル内容を要約して prompt に埋め込まない
 - サブエージェント / Codex review-patch チャネルでは、スキル内の GitHub 投稿・レビュー後の修正・ユーザー確認フェーズを実行させない（レビュー結果の出力のみ）
-- `codex exec review` は staged-only レビュー非対応。`--target` は `--uncommitted` / `--base {base}` に変換する
-- `codex exec review` の対象フラグ（`--uncommitted` / `--base` / `--commit`）は PROMPT 引数と排他。シニアチャネルには PROMPT・stdin を渡さず、観点はネイティブレビューエンジンに任せる
+- 4チャネルとマージ・分析は静的確認だけで行い、test、lint、format、typecheck、build、benchmark、codegen、依存関係のインストール、プロジェクトコードの実行を禁止する。既存テストコードの読み取りだけを許可する
+- `codex exec review` の対象フラグ（`--uncommitted` / `--base` / `--commit`）は PROMPT 引数と排他。このスキルでは対象フラグを使わず、PROMPT に対象 diff コマンドと静的レビュー契約を渡す
 - 全チャネルの作業ディレクトリはレビュー対象リポジトリ（worktree 含む）に揃える。プレーンな `codex exec` は `-C {workdir}` で指定できるが、`codex exec review` は `-C` 非対応（`error: unexpected argument '-C' found`、exit code 2）のため `cd {workdir} && ` を前置する
 - 作業ディレクトリを指定する場合、レビューファイル（`-o` / サブエージェント出力）は絶対パスで同一ディレクトリに揃える
 - `codex exec` / `codex exec review` はレビュー専用でソースコードを変更しない。プロンプトでもコード変更を禁止し、レビュー結果のみを出力させる
@@ -501,7 +516,7 @@ GitHub へレビューを投稿する場合は、`review-patch` スキルの「G
 ### マージ・修正ルール
 
 - レビュー結果のマージはユーザーに提示してから修正に入る
+- レビュー結果のマージ・分析でもテスト、lint、build等を実行しない。禁止コマンドを実行したチャネルは違反として明示し、その実行結果をレビュー根拠に採用しない
 - 統合結果は md ファイルに書き出さず、`review-patch` スキルのレビューサマリー形式（タグ体系 `critical` / `should` / `nits` / `ask`、テキストバッジ）で会話内に提示する
 - GitHub への投稿は `review-patch` スキルの「GitHub 投稿」節に従う。投稿本文は `review-patch` スキルのサマリー構造と「指摘の書き方」のみで構成し、「指摘元」列やレビュー体制の説明（チャネル構成・「N系統の統合結果」等）は含めない
 - 各チャネルの指摘が矛盾する場合は、コードの文脈を確認した上で判断理由を明記する
-- `--target staged` 指定時、シニアチャネルは `codex exec review --uncommitted` のため unstaged の指摘が混入しうる。マージ前に `git diff --cached --name-only` で staged ファイルに限定してフィルタリングする（サブエージェント・adversarial・review-patch チャネルは `git diff --cached` を渡すためフィルタ不要）

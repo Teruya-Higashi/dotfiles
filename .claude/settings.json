@@ -23,10 +23,6 @@
       "Write",
       "mcp__serena"
     ],
-    "ask": [
-      "Bash(rm *)",
-      "Bash(rmdir *)"
-    ],
     "deny": [
       "Bash(dd *)",
       "Bash(fdisk *)",
@@ -44,6 +40,10 @@
       "Read(//**/secrets/**)",
       "Edit(//**/secrets/**)",
       "Edit(//**/.env*)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(rmdir *)"
     ]
   },
   "model": "claude-fable-5[1m]",
@@ -76,7 +76,7 @@
   },
   "outputStyle": "Explanatory",
   "language": "Japanese",
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "autoMemoryEnabled": false,
   "showThinkingSummaries": true,
   "skipWorkflowUsageWarning": true,
