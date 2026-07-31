@@ -15,28 +15,9 @@ developer_instructions = "ユーザーへの応答は日本語で行う。"
 extends = ":workspace"
 
 [permissions."default".filesystem]
-":root" = "deny"
-":minimal" = "read"
-"/usr/local/bin" = "read"
-
 # tmp directory
 ":tmpdir" = "write"
 ":slash_tmp" = "write"
-
-# SSL
-"/System/Library/OpenSSL/openssl.cnf" = "read"
-
-# Homebrew
-"/opt/homebrew" = "read"
-
-# macOS developer tools
-"/Library/Developer/CommandLineTools" = "read"
-"/Applications/Xcode.app/Contents/Developer" = "read"
-
-# git
-"~/.gitconfig" = "read"
-"~/.config/git" = "read"
-"~/.config/gh" = "read"
 
 # mise
 "~/.local/share/mise" = "write"
@@ -47,7 +28,6 @@ extends = ":workspace"
 "~/go/pkg/mod" = "write"
 "~/go/pkg/sumdb" = "write"
 "~/Library/Caches/go-build" = "write"
-"~/Library/Application Support/go/env" = "read"
 "~/Library/Application Support/go/telemetry" = "write"
 
 # TypeScript
@@ -55,14 +35,7 @@ extends = ":workspace"
 "~/Library/pnpm" = "write"
 "~/Library/Caches/pnpm" = "write"
 
-# AI
-"~/.agents" = "read"
-"~/.codex/skills" = "read"
-"~/.codex/plugins" = "read"
-
 # Docker
-"~/.docker/config.json" = "read"
-"~/.docker/cli-plugins" = "read"
 "~/.docker/buildx" = "write"
 
 # gcloud
@@ -76,6 +49,9 @@ extends = ":workspace"
 
 # crit
 "~/.crit" = "write"
+
+# serena
+"~/.serena" = "write"
 
 # dotfiles
 "~/projects/dotfiles" = "write"
