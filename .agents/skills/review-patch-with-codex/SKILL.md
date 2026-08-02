@@ -20,7 +20,7 @@ Codex チャネルは plugin（`codex:codex-rescue` サブエージェント）�
 - **adversarial レビュー**: プレーンな `codex exec` を使用。adversarial スタンスと出力フォーマットをプロンプトで完全制御する
 - **review-patch レビュー**: プレーンな `codex exec` を使用。サブエージェントレビューと同様に `review-patch` スキルを Codex に実行させる（同一手法を呼び出し元 AI / Codex の2モデルで独立に走らせて突き合わせる）
 
-モデルは `--model` / `--effort` オプションで指定でき、デフォルトは `gpt-5.6-sol` + reasoning effort `high`。サンドボックス・承認設定は `~/.codex/config.toml` に従う（`approval_policy = "never"` を前提）。
+モデルは `--model` / `--effort` オプションで指定でき、デフォルトは `gpt-5.6-sol` + reasoning effort `medium`。サンドボックス・承認設定は `~/.codex/config.toml` に従う（`approval_policy = "never"` を前提）。
 
 ## 前提
 
@@ -46,22 +46,23 @@ Codex チャネルは plugin（`codex:codex-rescue` サブエージェント）�
 | レビュー対象 | `staged` | `--target working`, `--target pr`, `--target pr:develop` |
 | 出力プレフィックス | `review` | `--prefix my-review` |
 | Codex モデル | `gpt-5.6-sol` | `--model gpt-5.4` |
-| Codex effort | `high` | `--effort high`, `--effort max` |
+| Codex effort | `medium` | `--effort high`, `--effort xhigh`, `--effort max` |
 
 **パース規則**:
 - `--target {値}`, `--prefix {値}`, `--model {値}`, `--effort {値}` を引数から抽出し、残りをレビュー観点の追加指示として扱う
 - キーワードが見つからなければデフォルト値を使用
 
-**モデル**: `--model` / `--effort` は全 Codex チャネル（シニア / adversarial / review-patch）共通。CLI には `-m {model} -c model_reasoning_effort="{effort}"` を常に付与する（`--model` の値はそのまま `-m` に渡す。未指定時は `gpt-5.6-sol` / `high`）。
+**モデル**: `--model` / `--effort` は全 Codex チャネル（シニア / adversarial / review-patch）共通。CLI には `-m {model} -c model_reasoning_effort="{effort}"` を常に付与する（`--model` の値はそのまま `-m` に渡す。未指定時は `gpt-5.6-sol` / `medium`）。
 
 ### effort の使い分け
 
-- `high`（デフォルト）: 通常の4チャネルレビュー。推論と実行時間のバランスを取る
+- `medium`（デフォルト）: 通常の4チャネルレビュー。推論と実行時間のバランスを取る
+- `high`: より深い調査が必要な場合の明示的な上書き
 - `xhigh`: 複雑な差分や深い検証が必要な場合の明示的な上書き
 - `max`: 認証・認可、機密データ、複雑な並行処理、大規模移行など、各 Codex チャネルに最深の単一実行推論を求める場合
 
 ```text
-/review-patch-with-codex --effort high --target staged
+/review-patch-with-codex --effort xhigh --target staged
 /review-patch-with-codex --effort max --target pr
 ```
 
@@ -265,7 +266,7 @@ EOF
 **フラグの構築**:
 - `cd {workdir} && ` → 作業ディレクトリの指定（`codex exec review` は `-C` 非対応のため前置で移す。cwd が対象リポジトリなら省略可）
 - 対象フラグ → 使用しない。PROMPT と排他のため `--uncommitted` / `--base` / `--commit` は付けない
-- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `high`）
+- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `medium`）
 - `-o {prefix}-codex_{sequence_number}.md` → 常に付与（レビューファイル書き出しのため。`cd` を前置する場合は絶対パスで渡す）
 - サンドボックス・承認は `~/.codex/config.toml` に従う（`workspace-write` / `never` 前提）
 
@@ -327,7 +328,7 @@ EOF
 
 **フラグの構築**:
 - `-C {workdir}` → 作業ディレクトリの指定（プレーンな `codex exec` は `-C` を受理する。cwd が対象リポジトリなら省略可）
-- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `high`）
+- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `medium`）
 - `-o {prefix}-adversarial_{sequence_number}.md` → 常に付与（レビューファイル書き出しのため。`-C` を付ける場合は絶対パスで渡す）
 - サンドボックス・承認は `~/.codex/config.toml` に従う（`workspace-write` / `never` 前提）
 
@@ -369,7 +370,7 @@ EOF
 
 **フラグの構築**:
 - `-C {workdir}` → 作業ディレクトリの指定（プレーンな `codex exec` は `-C` を受理する。cwd が対象リポジトリなら省略可）
-- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `high`）
+- `-m {model} -c model_reasoning_effort="{effort}"` → 常に付与（未指定時は `gpt-5.6-sol` / `medium`）
 - `-o {prefix}-skill_{sequence_number}.md` → 常に付与（レビューファイル書き出しのため。`-C` を付ける場合は絶対パスで渡す）
 - サンドボックス・承認は `~/.codex/config.toml` に従う（`workspace-write` / `never` 前提）
 
@@ -510,7 +511,7 @@ GitHub へレビューを投稿する場合は、`review-patch` スキルの「G
 - 作業ディレクトリを指定する場合、レビューファイル（`-o` / サブエージェント出力）は絶対パスで同一ディレクトリに揃える
 - `codex exec` / `codex exec review` はレビュー専用でソースコードを変更しない。プロンプトでもコード変更を禁止し、レビュー結果のみを出力させる
 - レビューファイルは `-o {ファイル}` でエージェントの最終メッセージを書き出す
-- モデルは `--model` / `--effort` で指定（デフォルト `gpt-5.6-sol` / `high`）、全 Codex チャネル共通
+- モデルは `--model` / `--effort` で指定（デフォルト `gpt-5.6-sol` / `medium`）、全 Codex チャネル共通
 - 固定4チャネルの独立性を守るため `ultra` は使わない。最深の単一実行推論が必要な場合は `--effort max` を明示する
 
 ### マージ・修正ルール
