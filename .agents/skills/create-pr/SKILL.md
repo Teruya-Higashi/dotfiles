@@ -1,6 +1,6 @@
 ---
 name: create-pr
-description: Pull Request 作成のガイドライン。PR 作成、gh コマンドでの PR 作成時に自動的に適用される。
+description: Pull Requestの作成・更新、Draft PR、Stacked PR、gh stack、ghコマンドによるPR作成を依頼されたときに使用する。
 ---
 
 # Pull Request 作成
@@ -9,6 +9,15 @@ description: Pull Request 作成のガイドライン。PR 作成、gh コマン
 
 **REQUIRED SUB-SKILL:** `gh` を使う前に `gh-ops` を読み、その認証・投稿・autolink・AI Generated バッジのルールに従う。
 
+## 簡潔に書く
+
+- タイトルは変更の主題を1行で表し、括弧による長い補足を付けない
+- 本文の先頭で「なぜ変えたか」と「何を変えたか」を1〜2文で示す
+- 独立した変更点は箇条書き、一連の流れは短い段落で説明する。diffで分かる細部を転記しない
+- 対象ファイルが多いtest / lintコマンドは、全パスを列挙せず対象範囲と結果を要約する
+- 設計判断、Why NOT、スコープ境界が必要なら、テンプレートの補足欄へ結論だけを数行で書く
+- 特定行だけに必要な補足は本文へ埋めず、ユーザーがセルフレビューコメントも依頼した場合に限り該当行へ投稿する
+
 ## 基本ルール
 
 - PR はデフォルトで Draft として作成する。ユーザーが明示した場合だけ Ready for review にする
@@ -16,6 +25,8 @@ description: Pull Request 作成のガイドライン。PR 作成、gh コマン
 - タイトルは変更の主題を1行で表し、Issue番号などのプレフィックスはリポジトリ規約で必須の場合だけ付ける
 - 本文は「なぜ変えたか」と「何を変えたか」を先に示し、diffで分かる細部や試行錯誤を転記しない
 - 未整理な検討過程や試行錯誤、個人環境の絶対パスをタイトル・本文・コメントへ記載しない
+- Codex、ClaudeなどのエージェントセッションURLや内部実行URLを、タイトル・本文・コメント・コミットメッセージへ記載しない
+- ユーザーのプロンプト履歴や内部指示をPR本文へ転載しない。リポジトリテンプレートが明示的に要求する場合は、公開してよい内容だけをユーザーへ確認する
 - Issueとの関連が確認できる場合だけ本文冒頭に closing keyword を置く。推測でIssueを紐付けない
 - Git履歴を書き換えるrebase、force push、ブランチ変更は、ユーザーの明示的な承認なしに行わない
 
@@ -97,12 +108,18 @@ git config --get "branch.${branch}.remote"
 
 pushする前に、同じhead branchのopen PRを確認する。
 
+`gh pr list --head`は`owner:branch`を受け付けないため、fork-awareな検索にはREST APIを使う。
+
 ```bash
-gh pr list --repo "{base_repo}" --head "{head_owner}:$branch" --state open \
-  --json number,title,baseRefName,headRefName,url
+gh api --method GET "repos/{base_repo}/pulls" \
+  -f state=open \
+  -f "head={head_owner}:$branch" \
+  -f per_page=100 \
+  --paginate --slurp \
+  --jq 'flatten | map({number, title, draft, base: .base.ref, head: .head.ref, url: .html_url})'
 ```
 
-- 既存PRがある場合は、そのPR番号・URL・baseを提示し、更新してよいかユーザーへ確認する
+- 既存PRがある場合は、そのPR番号・URL・base・Draft状態を提示し、更新してよいかユーザーへ確認する
 - 既存PRがある場合の `{base}` は、ユーザーが変更を指示しない限り既存PRのbaseを維持する
 - 新規PRではユーザー指定のbaseを最優先し、指定がなければデフォルトブランチを `{base}` とする
 
@@ -144,6 +161,8 @@ trap 'rm -f "$pr_body_file"' EXIT HUP INT TERM
 
 upstreamの有無を確認し、既存設定を変更しない。
 
+Stacked PRの場合はこの通常pushを実行せず、`references/stacked-pr.md`の`submit`または`link`にpushとbase設定を任せる。
+
 ```bash
 if git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
   git push "{head_remote}" "$branch"
@@ -175,31 +194,35 @@ gh pr create \
 ```bash
 gh pr edit "{pr_number}" \
   --repo "{base_repo}" \
+  {ユーザーがbase変更を明示した場合のみ: --base "{base}"} \
   --title "{変更の主題}" \
   --body-file "$pr_body_file"
 ```
 
-#### Stacked PR
-
-- ユーザーが **Stacked PR** または **`gh stack` の利用**を明示した場合に限り、公式の `gh-stack` 拡張を使う
-- 親子関係を推測できる場合でも、明示指定がなければ通常の `gh pr create` を使う
-- 外部管理しているブランチをStack化するときは、親から子の順に `gh stack link` へ渡す。ブランチのpush、PR作成、base設定はこのコマンドに任せる
-- Ready for review の明示指定がある場合だけ `--open` を付ける
+既存PRのDraft / Ready状態は、ユーザーが状態変更を明示しない限り維持する。明示された場合だけ次を実行する。
 
 ```bash
-gh stack link {Ready指定時のみ: --open} \
-  --remote "{head_remote}" \
-  "{parent_pr_or_branch}" \
-  "$branch"
+# Ready指定
+gh pr ready "{pr_number}" --repo "{base_repo}"
+
+# Draft指定
+gh pr ready "{pr_number}" --repo "{base_repo}" --undo
 ```
 
-作成後は通常のPRと同様にタイトル・本文をテンプレートへ合わせ、`gh pr view` でbase/head、Draft状態、本文を検証する。加えて `gh stack view --json` でStack内の親子関係を検証する。
+#### Stacked PR
+
+- ユーザーが **Stacked PR** または **`gh stack`** を明示した場合だけ使う
+- 親子関係やStack化を推測で適用しない
+- [`references/stacked-pr.md`](references/stacked-pr.md)を全文読み、ローカル追跡stackと外部管理branchを区別して実行する
+- stack操作に失敗しても通常の`git push` / `gh pr create`へ暗黙にフォールバックしない
+- closing keywordは各PRが直接解決するIssueだけに付け、stack全体へ機械的に複製しない
+- Ready for reviewの明示指定がある場合だけ`--open`を付ける
 
 ### 8. 作成結果の確認
 
 ```bash
 gh pr view "{pr_number}" --repo "{base_repo}" \
-  --json number,title,body,isDraft,baseRefName,headRefName,url
+  --json number,title,body,isDraft,baseRefName,headRefName,url,closingIssuesReferences
 ```
 
 次を確認してPR URLを報告する。
@@ -207,5 +230,21 @@ gh pr view "{pr_number}" --repo "{base_repo}" \
 - Draft状態とbase/headが意図どおり
 - リポジトリのテンプレート構造を満たしている
 - 必要なclosing keywordだけが含まれている
+- 解決するIssueがある場合、`closingIssuesReferences`に期待するIssue番号がある
 - 未整理な検討過程や試行錯誤、個人環境の絶対パスが含まれていない
+- エージェントセッションURL、内部実行URL、プロンプト履歴が含まれていない
 - AI Generated バッジが末尾にある
+
+期待するIssueが`closingIssuesReferences`にない場合は、closing keywordの綴り、半角スペース、`#`、Issueのリポジトリを確認する。推測で別Issueへ付け替えない。
+
+## セルフレビューコメント
+
+ユーザーがPR作成に加えてセルフレビューコメントの投稿も明示した場合だけ行う。該当がなければ投稿しない。
+
+- 対象は、意図的だが一見バグに見える実装の理由、または特定行に対応する現実的な故障シナリオ
+- 一般的な変更説明、diffの言い換え、PR本文で足りる説明は投稿しない
+- 投稿前に`ファイル:行`とコメント全文を一覧で提示し、投稿対象をユーザーに選択してもらう
+- 選択されていないコメントを投稿しない
+- 複数コメントは可能なら1つの`COMMENT`レビューにまとめ、通知を増幅させない
+- severityバッジは付けず、各コメント冒頭にAI Generatedバッジを付ける
+- [`references/self-review-comments.md`](references/self-review-comments.md)を全文読み、`gh-ops`の安全な本文受け渡しを使って投稿後に再取得する
