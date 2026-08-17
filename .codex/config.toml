@@ -56,6 +56,9 @@ extends = ":workspace"
 # dotfiles
 "~/projects/dotfiles" = "write"
 
+# cache
+"~/.cache" = "write"
+
 [permissions."default".filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
