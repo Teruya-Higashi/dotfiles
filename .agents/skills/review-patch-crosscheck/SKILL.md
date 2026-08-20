@@ -35,17 +35,22 @@ codex --version
 ## 引数
 
 ```text
-/review-patch-crosscheck [PR番号|PR URL] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--effort EFFORT] [追加レビュー指示]
+/review-patch-crosscheck [PR番号|PR URL] [--watch] [--fix] [--post] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--effort EFFORT] [追加レビュー指示]
 ```
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
 | `--target` | `staged` | ローカルレビューの差分範囲 |
-| `--prefix` | `review` | `{workdir}`直下に置く出力ファイルの接頭辞 |
+| `--prefix` | `review` | `{artifact_dir}`直下に置く成果物ファイル名の接頭辞 |
 | `--model` | `gpt-5.6-sol` | Codex 3チャネルのモデル |
 | `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定4チャネルを保つため`ultra`は使わない |
+| `--watch` | なし | PRのコミット追加を監視し、pushごとにレビューを自動実行。PR指定必須、`--target`と併用不可 |
+| `--fix` | なし | `--watch`専用。自分のPRに限りcritical / shouldを自動修正しcommit + pushまで行う |
+| `--post` | なし | `--watch`専用。発火ごとに検証済み指摘を確認なしでGitHubへ投稿する |
 
 引数は左から走査する。PR番号または同一リポジトリのPR URLは最大1個、各オプションは最大1個とする。重複、未知オプション、値不足、不正値は実行前にエラーにする。PR指定と`--target`は排他とする。`prefix`は`[A-Za-z0-9._-]+`、modelは`[A-Za-z0-9][A-Za-z0-9._:/-]*`に制限し、改行や制御文字を含む値を拒否する。baseは`git check-ref-format --branch`で検証する。
+
+`--fix` / `--post`は`--watch`指定時のみ有効。`--watch`指定時は[`../review-patch/references/watch-mode.md`](../review-patch/references/watch-mode.md)を全文読み、それに従う。
 
 オプションとPR指定以外の残りは追加レビュー指示として4チャネルへ同一内容を渡す。ただし静的レビュー契約に反する指示は拒否する。ユーザー指定なしにmodelやeffortを変更しない。
 
@@ -63,7 +68,7 @@ codex --version
 
 `pr` / `pr:{base}`では、検証済みbase refをshellへ埋め込まず、gitコマンドの引数として渡してmerge-baseを先に計算する。結果が完全なcommit SHAであることを検証して`{merge_base_sha}`へ入れる。
 
-PR番号またはURL指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseをfetchし、GitHubの`refs/pull/{PR}/head`を一時refへfetchして、期待する`headRefOid`と一致することを確認する。そのSHAをdetached HEADとして新しい専用worktreeへ展開する。既存ローカルbranchや`origin/{head}`を再利用せず、fork PRでもbase repositoryのpull refから取得する。本体checkoutがdirtyでもstash、reset、checkout、branch変更を行わない。
+PR番号またはURL指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseを一意な一時refへfetchし、完全なcommit SHAを`base_sha`として固定する。GitHubの`refs/pull/{PR}/head`も別の一時refへfetchして、期待する`headRefOid`と一致することを確認する。その`head_sha`をdetached HEADとして新しい専用worktreeへ展開する。既存remote-tracking ref、`FETCH_HEAD`、ローカルbranch、`origin/{head}`を再利用せず、fork PRでもbase repositoryのpull refから取得する。本体checkoutがdirtyでもstash、reset、checkout、branch変更を行わない。
 
 PR本文、linked issue、コミットメッセージ、既存レビューはこの時点では読まない。以降の`{workdir}`は専用worktreeの絶対パスとする。
 
@@ -109,8 +114,9 @@ PR本文、linked issue、コミットメッセージ、既存レビューはこ
 1. 引数を厳密にパースし、前提を検証する。
 2. PR指定時は専用worktreeを作成する。
 3. `{workdir}`を確定し、隔離不変条件を検査する。
-4. merge-base SHA、差分コマンド、`{artifact_dir}`、絶対出力パス、`{seq}`を確定する。
-5. `--stat`だけで空チェックする。
+4. 固定した`base_sha`と`head_sha`からmerge-base SHAを計算し、差分コマンド、`{artifact_dir}`、絶対出力パス、`{seq}`を確定する。
+5. 選択済み`review-patch` skill directoryをcanonicalな絶対パス`{review_patch_skill_dir}`として確定し、`SKILL.md`と必須referenceの存在を確認する。
+6. `--stat`だけで空チェックする。
 
 ### 2. 4チャネルを同時起動
 
@@ -139,72 +145,12 @@ PR本文、linked issue、コミットメッセージ、既存レビューはこ
 
 ### 3. マージ
 
-全チャネル完了後に出力を初めて読む。PR指定時はここでPR本文、linked issue、コミットメッセージ、既存レビューを取得する。変更意図を知っていれば解消する`ask`、作者が回答済みの論点、既存指摘との重複を除外する。
-
-`review-patch`の出力規則とタグ判定を読み、各候補について差分起因性、対象外ファイル、根拠、actionable性を再検証する。
-
-- 表現が異なる同一論点は、発火条件・影響・修正方針でまとめる。行番号だけの違いでは別件にしない
-- 各指摘には検出した全チャネルを記録する
-- 一致数は調査順序であり、正しさの投票ではない
-- 同じモデル由来の相関誤りを考慮し、到達可能な発火条件とコード上のevidenceで判断する
-- 同一箇所に複数観点が交差する場合は複合影響を検討し、必要ならseverityを上げる
-
-| 独立チャネル一致数 | 扱い |
-|---:|---|
-| 3〜4 | 最優先でevidenceを検証 |
-| 2 | 高優先でevidenceを検証 |
-| 1 | 固有指摘として同じ基準で検証 |
-
-adversarialの`Critical` / `Warning` / `Info`やnative reviewのseverityは機械変換せず、`review-patch`の判定基準で`critical` / `should` / `nits` / `ask`を決め直す。
-
-`{prefix}-merged_{seq}.md`へ次の構造で全文を書き、同じ全文を省略・要約せず会話へ提示する。
-
-```markdown
-## レビューサマリー
-
-**変更の意図**: ...
-**影響範囲**: ...
-
-### 指摘一覧
-
-| No. | ファイル:行 | タグ | 概要 | 指摘元 | 対応 |
-|---:|---|---|---|---|---|
-| 1 | path:line | critical | ... | rules-agent, senior-codex | **対応推奨** — ... |
-
-### 判定: APPROVE / REQUEST_CHANGES / COMMENT
-
-検証: 静的確認のみ（テスト・lint・build未実行）
-
-### 指摘詳細
-
-#### 1. [critical] `path:line` — 概要
-
-- 問題: ...
-- 発火条件: ...
-- 根拠: ...
-- 影響: ...
-- 修正案: ...
-- 対応判定: ...
-```
-
-各指摘の詳細には、問題、具体的な発火条件、根拠、影響、修正案、対応判定を含める。指摘ゼロならAPPROVEとし、「指摘なし」、変更意図、影響範囲を記載する。
-
-会話とローカル成果物では`[critical]` / `[should]` / `[nits]` / `[ask]`のテキストバッジを使う。GitHubへ投稿するときだけ、`review-patch`の規則に従って対応する画像バッジへ変換する。
+全チャネル完了後に[`references/merge-and-report.md`](references/merge-and-report.md)を全文読み、その「マージ」に従う。チャネル出力、PR本文、linked issue、コミットメッセージ、既存レビューはこの時点で初めて読む。
 
 ### 4. 結果提示と修正
 
-PR指定時は`gh pr view {PR} --json author`でauthorを確認する。他メンバーのPRなら修正フローに入らず、`review-patch`のGitHub投稿フローへ進む。投稿は必ず事前確認を取り、本文から「指摘元」列とレビュー体制の説明を除く。
-
-authorが自分、またはローカル指定なら次だけを確認する。
-
-```text
-修正しますか？（all / 番号指定 / none）
-```
-
-確認前にファイルを変更しない。選択された指摘だけ対象ファイルを改めて読み、修正する。検証は`AGENTS.md`、プロジェクト文書、task runner定義を確認し、対象に対応する既定タスクを優先する。直接コマンドしかない場合は、変更に対応する最小のlint / test / build / codegenを実行する。
-
-PR指定でレビューだけを行った場合は、成果物が`{artifact_dir}`に存在することを確認してから専用worktreeを削除する。修正によりworktreeがdirtyになった場合は削除・force removeせず、変更の保存または転送方法についてユーザーへ確認し、worktree pathを報告する。
+同じreferenceの「結果提示と修正」に従う。
 
 ### 5. 完了報告
 
-対応した指摘、スキップした指摘と理由、検証結果、各チャネルの経過秒と生存した固有指摘数を報告する。コミット、push、GitHub投稿はユーザーが明示的に依頼・承認した場合だけ行う。
+同じreferenceの「完了報告」に従う。
