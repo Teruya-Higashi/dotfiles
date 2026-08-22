@@ -12,7 +12,6 @@ gcloud = "latest"
 "aqua:BurntSushi/ripgrep" = "latest"
 "aqua:cli/cli" = "latest"
 
-"npm:difit" = "latest"
 "npm:@playwright/cli" = "latest"
 
 "github:tomasz-tomczyk/crit" = "latest"
