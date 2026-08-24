@@ -45,12 +45,12 @@ codex --version
 | `--model` | `gpt-5.6-sol` | Codex 3チャネルのモデル |
 | `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定4チャネルを保つため`ultra`は使わない |
 | `--watch` | なし | PRのコミット追加を監視し、pushごとにレビューを自動実行。PR指定必須、`--target`と併用不可 |
-| `--fix` | なし | `--watch`専用。自分のPRに限りcritical / shouldを自動修正しcommit + pushまで行う |
-| `--post` | なし | `--watch`専用。発火ごとに検証済み指摘を確認なしでGitHubへ投稿する |
+| `--fix` | なし | 修正確認なしでcritical / shouldを修正する。PR指定時は自分のPR限定でcommit + pushまで行う |
+| `--post` | なし | PR指定必須。検証済み指摘を事前確認なしでGitHubへ投稿する |
 
 引数は左から走査する。PR番号または同一リポジトリのPR URLは最大1個、各オプションは最大1個とする。重複、未知オプション、値不足、不正値は実行前にエラーにする。PR指定と`--target`は排他とする。`prefix`は`[A-Za-z0-9._-]+`、modelは`[A-Za-z0-9][A-Za-z0-9._:/-]*`に制限し、改行や制御文字を含む値を拒否する。baseは`git check-ref-format --branch`で検証する。
 
-`--fix` / `--post`は`--watch`指定時のみ有効。`--watch`指定時は[`../review-patch/references/watch-mode.md`](../review-patch/references/watch-mode.md)を全文読み、それに従う。
+`--post`はPR指定必須。`--fix`はPR指定時にauthorが自分以外なら拒否する。`--fix`と`--post`の併用時は修正を先に行い、修正で解消した指摘を投稿から除外する。`--watch`指定時は[`../review-patch/references/watch-mode.md`](../review-patch/references/watch-mode.md)を全文読み、それに従う。
 
 オプションとPR指定以外の残りは追加レビュー指示として4チャネルへ同一内容を渡す。ただし静的レビュー契約に反する指示は拒否する。ユーザー指定なしにmodelやeffortを変更しない。
 

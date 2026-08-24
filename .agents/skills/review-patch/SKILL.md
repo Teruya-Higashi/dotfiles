@@ -27,10 +27,10 @@ description: PR、ブランチ、コミット範囲、未コミット差分の�
 | オプション | 説明 |
 |---|---|
 | `--watch` | PRのコミット追加を監視し、pushごとにレビューを自動実行する |
-| `--fix` | `--watch`専用。自分のPRに限りcritical / shouldを自動修正しcommit + pushまで行う |
-| `--post` | `--watch`専用。発火ごとに検証済み指摘を確認なしでGitHubへ投稿する |
+| `--fix` | 修正確認なしでcritical / shouldを修正し、commit + pushまで行う。authorが自分以外なら拒否する |
+| `--post` | 検証済み指摘を事前確認なしでGitHubへ投稿する |
 
-`--watch`指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う。
+`--fix`と`--post`の併用時は修正を先に行い、修正で解消した指摘を投稿から除外する。`--watch`指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う。
 
 ## Step 0: 対象の準備
 
