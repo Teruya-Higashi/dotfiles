@@ -144,8 +144,6 @@ Phase 4 で取得した既存取引（`GET /api/1/deals`）と対象証憑を照
 | OrbStack | Orbstack | 大文字小文字の揺れ |
 | 株式会社〇〇 / 〇〇株式会社 | 〇〇 | 法人格の前後・有無 |
 | 〇〇(PayPal) | 〇〇 | 決済手段サフィックスを除去して検索 |
-| Anker Japan Co.,Ltd | Amazon.co.jp | Amazon マーケットプレイス出品者 |
-| 深セン〇〇有限公司 | Amazon.co.jp | Amazon マーケットプレイス出品者 |
 | PAYPAL *OREILLYMEDI | 株式会社オライリー・ジャパン | PayPal プレフィックス除去 + サービス名推定 |
 | グーグル・ペーメント・ジ | Google | カタカナ/英語の揺れ |
 | OPENAI *CHATGPT SUBS | OpenAI | クレカ明細の略称 |

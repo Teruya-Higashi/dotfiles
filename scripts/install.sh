@@ -16,7 +16,6 @@ brew install mise
 brew install rectangle
 brew install visual-studio-code
 brew install orbstack
-brew install chatgpt
 brew install codex-app
 brew install tablepro
 brew install google-japanese-ime
