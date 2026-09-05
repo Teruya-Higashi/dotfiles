@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="local review の event を thread 単位に集約し、未返信・返信済み・resolved を判定する"
+# shellcheck disable=SC2016
+set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib.sh"
+
+REVIEW_DIR=""
+while (($#)); do
+    case "$1" in
+        --review-dir) lr_need_value "$@"; REVIEW_DIR="$2"; shift 2 ;;
+        *) lr_usage "reduce --review-dir DIR" ;;
+    esac
+done
+lr_review_dir_init "$REVIEW_DIR" readonly
+lr_events_load | "$LR_JQ" -c -f "$LR_JQ_DIR/reduce.jq"

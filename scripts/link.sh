@@ -22,6 +22,7 @@ mkdir -p ~/.claude
 mkdir -p ~/.codex/rules
 mkdir -p ~/.config/git
 mkdir -p ~/.config/mise/conf.d
+mkdir -p ~/.config/mise/tasks
 
 ln -sf $(pwd)/.agents/skills ~/.agents
 ln -sf $(pwd)/.agents/skills ~/.claude
@@ -33,6 +34,7 @@ ln -sf $(pwd)/.takt ~/.takt
 ln -sf $(pwd)/.config/git/ignore ~/.config/git/ignore
 ln -sf $(pwd)/.config/mise/config.toml ~/.config/mise/config.toml
 ln -sf $(pwd)/.config/mise/conf.d/local.toml ~/.config/mise/conf.d/local.toml
+ln -sfn "$(pwd)/.config/mise/tasks/local-review" ~/.config/mise/tasks/local-review
 git update-index --skip-worktree .config/mise/conf.d/local.toml
 
 GOOGLE_IME_DIR=~/Library/Application\ Support/Google/JapaneseInput

@@ -47,11 +47,21 @@ CI等の明示された自動投稿コンテキストを除き、投稿前にサ
 - `line`はdiff変更後の行、必要なら`side: "RIGHT"`、範囲は`start_line`と`line`を使う
 - 複数コメントは1件のreview payloadとして投稿する
 - payloadは一時ファイルへ安全に生成するか、構造化入力として渡す。ユーザー由来文字列を固定heredocへ展開しない
-- 投稿直前にPRの`headRefOid`を再取得し、レビューした`head_sha`と一致しなければ投稿を停止して再レビューの要否を確認する
+- 投稿直前にPRのstate、baseRefName、headRefOidを再取得し、base refを新しい一意temporary refへfetchする。OPEN、base名不変、headRefOidがレビューした`head_sha`、`merge-base(live base tip, head_sha)`がレビュー時の`base_sha`と一致する場合だけ投稿し、取得・fetch失敗または不一致では停止して最新snapshotを再レビューする
 - review payloadの`commit_id`にはレビューした`head_sha`を指定する
 - 投稿後はreviewsとcommentsを再取得し、event、本文、path、lineを照合する
 
 GitHub操作の詳細は`gh-ops`に従う。
+
+## ローカル媒体への投稿（`--local`）
+
+`--local`では[`local-review-mode.md`](local-review-mode.md)を全文読み、正本eventにだけ投稿する。Phase 3のフィルタリングとサマリー提示が終わるまで、finding生成・既存finding取得・投稿を行わない。
+
+- `--post`なし: サマリーと全指摘を提示し、承認後だけ投稿する
+- `--post`あり: フラグ指定を承認済みとして投稿する
+- 投稿後: helperの`reduce`を再実行し、review-runとthread状態を照合する
+- locator: `local-review-mode.md`の書式でreview ID、review directory、返信コマンドを提示する
+- 書込み失敗時: manifestを変更せず、helperのJSON出力とexit codeを報告する
 
 ## レビュー後アクション
 
@@ -60,9 +70,16 @@ GitHub操作の詳細は`gh-ops`に従う。
 | 明示されたCI自動レビュー | 構成済みの権限・eventで投稿 |
 | authorが現在のユーザー、またはローカル差分 | 結果を提示し、修正対象を`all / 番号 / none`で確認 |
 | 他メンバーのPR | 結果を提示し、GitHub投稿を確認 |
+| `--local` | 結果を提示し、正本eventへの投稿を確認。`--post`なら確認を省略 |
 
-`--fix`指定時は修正確認を行わず、critical / shouldを選択済みとして修正しcommit + pushまで行う。それ以外は確認前にファイルを変更しない。選択された指摘だけを修正し、プロジェクト既定の検証手順を確認して実行する。commit、push、投稿はそれぞれ明示的な依頼・承認がある場合だけ行う（`--fix` / `--post`指定時はフラグ指定を承認とみなす）。
+`--fix`指定時は修正確認を行わず、critical / shouldを選択済みとして修正する。それ以外は確認前にファイルを変更しない。選択された指摘だけを修正し、プロジェクト既定の検証手順を確認して実行する。
+
+- commit前にリポジトリのgit/commit規約を読む
+- 選択された指摘への対応hunkだけをstageする。既存unstaged hunkと安全に分離できなければcommit前に停止する
+- PR以外のローカル差分は検証後にcommitし、既存変更を巻き込まずpushしない
+- PR対象は自分のPRだけ修正する。`--local`なしは同一repositoryだけcommit + pushし、forkでは`--fix`を拒否する。PR + `--local`は同一repositoryならpushし、forkならcommitまでで止める
+- commit、push、投稿は明示的な依頼・承認がある場合だけ行う。`--fix` / `--post`は該当操作の承認とみなす
 
 ## PR用worktreeのcleanup
 
-レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。本体checkoutは変更しない。
+レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。本体checkoutは変更しない。PR番号 + `--local`ではactive manifestがworktreeを返信対応に使うため削除せず、`local-review-mode.md`のworktree寿命に従う。

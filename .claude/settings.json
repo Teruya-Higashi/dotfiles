@@ -46,7 +46,7 @@
       "Bash(rmdir *)"
     ]
   },
-  "model": "claude-fable-5[1m]",
+  "model": "claude-fable-5-1[1m]",
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.js"

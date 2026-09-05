@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#MISE description="local review の event を検証して追加する"
+# shellcheck disable=SC2016
+set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib.sh"
+
+usage() { lr_usage "event put --review-dir DIR --file F"; }
+
+[[ "${1:-}" == "put" ]] || usage; shift
+REVIEW_DIR="" FILE=""
+while (($#)); do
+    case "$1" in
+        --review-dir) lr_need_value "$@"; REVIEW_DIR="$2"; shift 2 ;;
+        --file) lr_need_value "$@"; FILE="$2"; shift 2 ;;
+        *) usage ;;
+    esac
+done
+lr_review_dir_init "$REVIEW_DIR"
+[[ -n "$FILE" && -f "$FILE" ]] || lr_usage "--file is required and must exist"
+
+same_as_existing() { [[ "$("$LR_JQ" -S -c 'del(.created_at)' "$LR_EVENTS_DIR/$1.json")" == "$("$LR_JQ" -S -c 'del(.created_at)' "$2")" ]]; }
+reused() { "$LR_JQ" -n -c --arg id "$1" '{ok:true, reused:true, id:$id}'; exit 0; }
+collision() { "$LR_JQ" -n -c --arg id "$1" --arg existing "$LR_EVENTS_DIR/$1.json" '{ok:false, error:"collision", id:$id, existing:$existing}'; exit "$LR_EXIT_COLLISION"; }
+
+# 同一 ID・同一内容は冪等に成功し、内容違いは collision。ln が原子的なので同時書き込みでも片方だけが勝つ
+res="$(lr_validate_file "$FILE")"; "$LR_JQ" -e .ok <<<"$res" >/dev/null || { printf '%s\n' "$res"; exit "$LR_EXIT_INVALID"; }
+id="$("$LR_JQ" -r .event.id <<<"$res")"
+tmp="$(lr_mktemp put)"; "$LR_JQ" -c . "$FILE" > "$tmp"
+created=0; lr_link_new "$tmp" "$LR_EVENTS_DIR/$id.json" && created=1
+lr_move_replace "$tmp" "$LR_TMP_DIR/.put-last.json"
+if (( created )); then "$LR_JQ" -n -c --arg id "$id" --arg path "$LR_EVENTS_DIR/$id.json" '{ok:true, reused:false, id:$id, path:$path}'; exit 0; fi
+same_as_existing "$id" "$FILE" && reused "$id"
+collision "$id"

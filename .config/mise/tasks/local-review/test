@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+#MISE description="local-review helper の結合テスト（fixture は tmp/local-review-test/ に作り、削除しない）"
+# shellcheck disable=SC2016
+set -uo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JQ="$(command -v jq)"
+E="$HERE/event"; R="$HERE/reduce"
+BASE_DIR="${TMPDIR:-/tmp}/codex-local-review-test"; mkdir -p "$BASE_DIR"
+RUN="$(mktemp -d "$BASE_DIR/run.XXXXXX")"; FIX="$RUN/fixtures"; REVIEW="$RUN/review"; mkdir -p "$FIX" "$REVIEW"
+PASS=0 FAIL=0 LAST_OUT="" LAST_RC=0
+ok() { PASS=$((PASS + 1)); }
+ng() { FAIL=$((FAIL + 1)); printf 'FAIL: %s\n  %s\n' "$1" "$2"; }
+run() { LAST_OUT="$("$@" 2>"$RUN/stderr")"; LAST_RC=$?; }
+assert_exit() { local name="$1" want="$2"; shift 2; run "$@"; if [[ "$LAST_RC" == "$want" ]]; then ok; else ng "$name" "exit $LAST_RC (want $want): $LAST_OUT $(cat "$RUN/stderr")"; fi; }
+assert_eq() { if [[ "$2" == "$3" ]]; then ok; else ng "$1" "got '$2' want '$3'"; fi; }
+jqv() { "$JQ" -r "$1" <<<"$2"; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+with_snapshot() { "$JQ" -c --arg sha "1111111111111111111111111111111111111111" 'if .type == "review-run" then . + {review_id:(.review_id // "review-patch-v3-test-000000000000"), producer:(.producer // "review-patch"), repository_common_dir:(.repository_common_dir // "/repo/.git"), worktree_root:(.worktree_root // "/repo"), branch:(.branch // "main"), target:(.target // "branch:main"), diff_mode:(.diff_mode // "commit-range"), base_sha:(.base_sha // $sha), head_sha:(.head_sha // $sha)} | .diff_args = (.diff_args // ["--no-ext-diff","--no-textconv",(.base_sha + ".." + .head_sha),"--"]) else . end'; }
+ev() { "$JQ" -n -c --arg at "$(now)" "$1" | with_snapshot > "$FIX/$2.json"; printf '%s' "$FIX/$2.json"; }
+ev_with() { local file="$1"; shift; "$JQ" -n -c --arg at "$(now)" "$@" | with_snapshot > "$FIX/$file.json"; printf '%s' "$FIX/$file.json"; }
+eid() { if command -v shasum >/dev/null 2>&1; then printf '%s' "$2" | shasum -a 256 | awk -v p="$1-" '{print p substr($1,1,24)}'; else printf '%s' "$2" | sha256sum | awk -v p="$1-" '{print p substr($1,1,24)}'; fi; }
+reviewer_eid() { if command -v shasum >/dev/null 2>&1; then printf '%s\0%s' "$1" "$2" | shasum -a 256 | awk '{print "reviewer-reply-" substr($1,1,24)}'; else printf '%s\0%s' "$1" "$2" | sha256sum | awk '{print "reviewer-reply-" substr($1,1,24)}'; fi; }
+
+printf '== event\n'
+F1="$(ev '{id:"finding-f-aaa-1", type:"finding", created_at:$at, finding_id:"f-aaa", run_seq:1, path:"a.txt", line:2, body:"first"}' f1)"
+assert_exit "put finding" 0 "$E" put --review-dir "$REVIEW" --file "$F1"
+assert_eq "not reused" "$(jqv .reused "$LAST_OUT")" false
+assert_exit "put same finding" 0 "$E" put --review-dir "$REVIEW" --file "$F1"
+assert_eq "reused" "$(jqv .reused "$LAST_OUT")" true
+F1D="$(ev '{id:"finding-f-aaa-1", type:"finding", created_at:$at, finding_id:"f-aaa", run_seq:1, path:"a.txt", line:2, body:"changed"}' f1d)"
+assert_exit "put different content" 4 "$E" put --review-dir "$REVIEW" --file "$F1D"
+assert_eq "collision" "$(jqv .error "$LAST_OUT")" collision
+assert_exit "rejects wrong id" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-x", type:"finding", created_at:$at, finding_id:"f-aaa", run_seq:1, path:"a.txt", body:"b"}' bad-id)"
+assert_exit "rejects absolute path" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-f-b-1", type:"finding", created_at:$at, finding_id:"f-b", run_seq:1, path:"/etc/x", body:"b"}' bad-path)"
+assert_exit "rejects .. path" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-f-b-1", type:"finding", created_at:$at, finding_id:"f-b", run_seq:1, path:"../x", body:"b"}' bad-dot)"
+assert_exit "rejects descending range" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-f-b-1", type:"finding", created_at:$at, finding_id:"f-b", run_seq:1, path:"a.txt", line:"5-3", body:"b"}' bad-line)"
+assert_exit "rejects run sequence beyond id range" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-f-huge-1000000", type:"finding", created_at:$at, finding_id:"f-huge", run_seq:1000000, path:"a.txt", body:"b"}' bad-run-seq)"
+assert_exit "rejects unknown type" 5 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"x-1", type:"note", created_at:$at}' bad-type)"
+"$JQ" -n -c --arg at "$(now)" '{id:"review-run-000009", type:"review-run", created_at:$at, run_seq:9, diff_fingerprint:"bad", findings:[], actions:[]}' > "$FIX/bad-run-snapshot.json"
+assert_exit "rejects run without canonical snapshot" 5 "$E" put --review-dir "$REVIEW" --file "$FIX/bad-run-snapshot.json"
+BAD_ARGV="$RUN/bad-argv"; mkdir -p "$BAD_ARGV"
+assert_exit "rejects unsafe diff argv" 5 "$E" put --review-dir "$BAD_ARGV" --file "$(ev '{id:"review-run-000009", type:"review-run", created_at:$at, run_seq:9, diff_fingerprint:"bad", findings:[], actions:[], diff_args:["--output=/tmp/leak"]}' bad-run-argv)"
+EXTRA_PARENT="finding-f-aaa-1"; EXTRA_ID="$(eid reply "$EXTRA_PARENT")"
+assert_exit "rejects run sequence on reply" 5 "$E" put --review-dir "$REVIEW" --file "$(ev_with bad-reply-run-seq --arg id "$EXTRA_ID" --arg parent "$EXTRA_PARENT" '{id:$id, type:"reply", created_at:$at, reply_to:$parent, body:"b", run_seq:999999}')"
+printf '{}\n{}\n' > "$FIX/two.json"
+assert_exit "rejects multiple values" 5 "$E" put --review-dir "$REVIEW" --file "$FIX/two.json"
+BAD_PARENT="reply-000000000000000000000000"; BAD_REPLY_ID="$(eid reply "$BAD_PARENT")"
+assert_exit "rejects reply to reply" 5 "$E" put --review-dir "$REVIEW" --file "$(ev_with bad-reply --arg id "$BAD_REPLY_ID" --arg parent "$BAD_PARENT" '{id:$id, type:"reply", created_at:$at, reply_to:$parent, body:"b"}')"
+assert_exit "missing file value" 2 "$E" put --review-dir "$REVIEW" --file
+assert_exit "missing review dir" 2 "$E" put --file "$F1"
+F2="$(ev '{id:"finding-f-bbb-1", type:"finding", created_at:$at, finding_id:"f-bbb", run_seq:1, path:"dir/b.txt", body:"second"}' f2)"
+assert_exit "put second finding" 0 "$E" put --review-dir "$REVIEW" --file "$F2"
+RUN1="$(ev '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"fp1", findings:["finding-f-aaa-1","finding-f-bbb-1"], actions:[], body:"summary"}' run1)"
+assert_exit "put review-run" 0 "$E" put --review-dir "$REVIEW" --file "$RUN1"
+BAD="$RUN/bad"; mkdir -p "$BAD/events" "$BAD/tmp"
+cp "$FIX/two.json" "$BAD/events/broken.json"
+assert_exit "reduce reports broken file" 0 "$R" --review-dir "$BAD"
+assert_eq "broken is invalid" "$(jqv '.invalid | length' "$LAST_OUT")" 1
+assert_eq "invalid fails closed" "$(jqv .ok "$LAST_OUT")" false
+assert_eq "invalid exposes no old threads" "$(jqv '.threads | length' "$LAST_OUT")" 0
+cp "$F1" "$BAD/events/not-the-event-id.json"
+assert_exit "reduce rejects filename/id mismatch" 0 "$R" --review-dir "$BAD"
+assert_eq "mismatched filename is invalid" "$(jqv '[.invalid[] | select(.file | endswith("not-the-event-id.json"))] | length' "$LAST_OUT")" 1
+
+printf '== reduce\n'
+assert_exit "reduce run 1" 0 "$R" --review-dir "$REVIEW"
+assert_eq "run 1 selected" "$(jqv .run_seq "$LAST_OUT")" 1
+assert_eq "both unreplied" "$(jqv '[.threads[] | select(.state == "unreplied")] | length' "$LAST_OUT")" 2
+assert_eq "no inconsistencies" "$(jqv '.inconsistencies | length' "$LAST_OUT")" 0
+R1_ID="$(eid reply finding-f-aaa-1)"
+assert_exit "put reply" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with r1 --arg id "$R1_ID" '{id:$id, type:"reply", created_at:$at, reply_to:"finding-f-aaa-1", body:"fixed"}')"
+assert_exit "reduce after reply" 0 "$R" --review-dir "$REVIEW"
+assert_eq "f-aaa replied" "$(jqv '.threads[] | select(.finding_id == "f-aaa") | .state' "$LAST_OUT")" replied-unresolved
+assert_eq "tail is reply" "$(jqv '.threads[] | select(.finding_id == "f-aaa") | .tail_event_id' "$LAST_OUT")" "$R1_ID"
+RR1_ID="$(reviewer_eid "$R1_ID" "not enough")"
+assert_exit "put reviewer-reply" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with rr1 --arg id "$RR1_ID" --arg parent "$R1_ID" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"not enough"}')"
+assert_exit "publish reviewer-reply" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with run2 --arg action "$RR1_ID" '{id:"review-run-000002", type:"review-run", created_at:$at, run_seq:2, diff_fingerprint:"fp1", findings:["finding-f-aaa-1","finding-f-bbb-1"], actions:[$action]}')"
+assert_exit "reduce after reviewer-reply" 0 "$R" --review-dir "$REVIEW"
+assert_eq "f-aaa unreplied again" "$(jqv '.threads[] | select(.finding_id == "f-aaa") | .state' "$LAST_OUT")" unreplied
+assert_eq "messages ordered" "$(jqv '.threads[] | select(.finding_id == "f-aaa") | .messages | map(.type) | join(",")' "$LAST_OUT")" "finding,reply,reviewer-reply"
+RES1_ID="$(eid resolved "$RR1_ID")"
+assert_exit "put resolved" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with res1 --arg id "$RES1_ID" --arg parent "$RR1_ID" '{id:$id, type:"resolved", created_at:$at, reply_to:$parent}')"
+assert_exit "publish resolved" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with run3 --arg action "$RES1_ID" '{id:"review-run-000003", type:"review-run", created_at:$at, run_seq:3, diff_fingerprint:"fp1", findings:["finding-f-aaa-1","finding-f-bbb-1"], actions:[$action]}')"
+assert_exit "reduce after resolve" 0 "$R" --review-dir "$REVIEW"
+assert_eq "f-aaa resolved" "$(jqv '.threads[] | select(.finding_id == "f-aaa") | .state' "$LAST_OUT")" resolved
+STALE_ID="$(eid resolved finding-f-bbb-1)"
+assert_exit "put stale resolved" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with res-stale --arg id "$STALE_ID" '{id:$id, type:"resolved", created_at:$at, reply_to:"finding-f-bbb-1"}')"
+assert_exit "publish stale resolved" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with run4 --arg action "$STALE_ID" '{id:"review-run-000004", type:"review-run", created_at:$at, run_seq:4, diff_fingerprint:"fp1", findings:["finding-f-aaa-1","finding-f-bbb-1"], actions:[$action]}')"
+R2_ID="$(eid reply finding-f-bbb-1)"
+assert_exit "put reply after stale resolve" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with r2 --arg id "$R2_ID" '{id:$id, type:"reply", created_at:$at, reply_to:"finding-f-bbb-1", body:"late"}')"
+assert_exit "reduce reopened" 0 "$R" --review-dir "$REVIEW"
+assert_eq "resolve before reply does not count" "$(jqv '.threads[] | select(.finding_id == "f-bbb") | .state' "$LAST_OUT")" replied-unresolved
+assert_exit "put run 5 dropping f-bbb" 0 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"review-run-000005", type:"review-run", created_at:$at, run_seq:5, diff_fingerprint:"fp2", findings:["finding-f-aaa-1"], actions:[]}' run5)"
+assert_exit "reduce run 5" 0 "$R" --review-dir "$REVIEW"
+assert_eq "dropped detected" "$(jqv '[.inconsistencies[] | select(.finding_id == "f-bbb" and (.reason | startswith("finding dropped")))] | length' "$LAST_OUT")" 1
+assert_eq "dropped carries tail" "$(jqv '.inconsistencies[0].tail_event_id' "$LAST_OUT")" "$R2_ID"
+RES2_ID="$(eid resolved "$R2_ID")"
+assert_exit "resolve dropped tail" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with res2 --arg id "$RES2_ID" --arg parent "$R2_ID" '{id:$id, type:"resolved", created_at:$at, reply_to:$parent}')"
+assert_exit "publish dropped resolution" 0 "$E" put --review-dir "$REVIEW" --file "$(ev_with run6 --arg action "$RES2_ID" '{id:"review-run-000006", type:"review-run", created_at:$at, run_seq:6, diff_fingerprint:"fp2", findings:["finding-f-aaa-1"], actions:[$action]}')"
+assert_exit "reduce after dropped resolve" 0 "$R" --review-dir "$REVIEW"
+assert_eq "dropped cleared" "$(jqv '.inconsistencies | length' "$LAST_OUT")" 0
+assert_exit "put run 7 reactivating f-bbb" 0 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"finding-f-bbb-7", type:"finding", created_at:$at, finding_id:"f-bbb", run_seq:7, path:"dir/b.txt", body:"again"}' f2b)"
+assert_exit "put run 7" 0 "$E" put --review-dir "$REVIEW" --file "$(ev '{id:"review-run-000007", type:"review-run", created_at:$at, run_seq:7, diff_fingerprint:"fp3", findings:["finding-f-aaa-1","finding-f-bbb-7"], actions:[]}' run7)"
+assert_exit "reduce run 7" 0 "$R" --review-dir "$REVIEW"
+assert_eq "reactivated is unreplied" "$(jqv '.threads[] | select(.finding_event_id == "finding-f-bbb-7") | .state' "$LAST_OUT")" unreplied
+assert_eq "continued stays resolved" "$(jqv '.threads[] | select(.finding_event_id == "finding-f-aaa-1") | .state' "$LAST_OUT")" resolved
+
+printf '== publication boundary\n'
+PUB="$RUN/publication"; mkdir -p "$PUB"
+PF="$(ev '{id:"finding-f-race-1", type:"finding", created_at:$at, finding_id:"f-race", run_seq:1, path:"race.txt", body:"race"}' pub-f)"
+assert_exit "publish finding" 0 "$E" put --review-dir "$PUB" --file "$PF"
+assert_exit "publish run 1" 0 "$E" put --review-dir "$PUB" --file "$(ev '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"race-1", head_sha:"1111111111111111111111111111111111111111", findings:["finding-f-race-1"], actions:[]}' pub-run1)"
+assert_exit "reduce returns current head sha" 0 "$R" --review-dir "$PUB"
+assert_eq "head sha round trips" "$(jqv .head_sha "$LAST_OUT")" 1111111111111111111111111111111111111111
+assert_eq "latest run payload round trips" "$(jqv '.review_run | del(.created_at) | .id + ":" + (.actions | length | tostring)' "$LAST_OUT")" review-run-000001:0
+ORPHAN_ID="$(eid resolved finding-f-race-1)"
+assert_exit "losing producer writes orphan resolve" 0 "$E" put --review-dir "$PUB" --file "$(ev_with pub-orphan-resolve --arg id "$ORPHAN_ID" '{id:$id, type:"resolved", created_at:$at, reply_to:"finding-f-race-1"}')"
+assert_exit "winner continues finding" 0 "$E" put --review-dir "$PUB" --file "$(ev '{id:"review-run-000002", type:"review-run", created_at:$at, run_seq:2, diff_fingerprint:"race-2", findings:["finding-f-race-1"], actions:[]}' pub-run2)"
+assert_exit "reduce ignores orphan action" 0 "$R" --review-dir "$PUB"
+assert_eq "orphan resolve cannot alter winning run" "$(jqv '.threads[] | select(.finding_id == "f-race") | .state' "$LAST_OUT")" unreplied
+assert_exit "orphan future finding" 0 "$E" put --review-dir "$PUB" --file "$(ev '{id:"finding-f-orphan-3", type:"finding", created_at:$at, finding_id:"f-orphan", run_seq:3, path:"orphan.txt", body:"orphan"}' pub-orphan-finding)"
+assert_exit "reduce after orphan finding" 0 "$R" --review-dir "$PUB"
+assert_eq "next run skips orphan sequence" "$(jqv .next_run_seq "$LAST_OUT")" 4
+
+PR_PARENT="$(eid reply finding-f-race-1)"
+assert_exit "put publication reply" 0 "$E" put --review-dir "$PUB" --file "$(ev_with pub-reply --arg id "$PR_PARENT" '{id:$id, type:"reply", created_at:$at, reply_to:"finding-f-race-1", body:"consumer"}')"
+OLD_RR_ID="$(reviewer_eid "$PR_PARENT" old)"; NEW_RR_ID="$(reviewer_eid "$PR_PARENT" new)"
+assert_exit "put orphan old reviewer body" 0 "$E" put --review-dir "$PUB" --file "$(ev_with pub-old-rr --arg id "$OLD_RR_ID" --arg parent "$PR_PARENT" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"old"}')"
+assert_exit "changed retry gets a new reviewer id" 0 "$E" put --review-dir "$PUB" --file "$(ev_with pub-new-rr --arg id "$NEW_RR_ID" --arg parent "$PR_PARENT" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"new"}')"
+TRAIL_BODY="$(printf 'trailing\nX')"$'\n'; TRAIL_ID="$(reviewer_eid "$PR_PARENT" "$TRAIL_BODY")"
+assert_exit "reviewer id preserves trailing newline" 0 "$E" put --review-dir "$PUB" --file "$(ev_with pub-trailing-rr --arg id "$TRAIL_ID" --arg parent "$PR_PARENT" --arg body "$TRAIL_BODY" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:$body}')"
+
+MISSING="$RUN/missing-action"; mkdir -p "$MISSING"
+MF="$(ev '{id:"finding-f-missing-1", type:"finding", created_at:$at, finding_id:"f-missing", run_seq:1, path:"missing.txt", body:"missing"}' missing-f)"
+assert_exit "missing action finding" 0 "$E" put --review-dir "$MISSING" --file "$MF"
+assert_exit "publish missing action reference" 0 "$E" put --review-dir "$MISSING" --file "$(ev '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"missing", findings:["finding-f-missing-1"], actions:["resolved-000000000000000000000000"]}' missing-run)"
+assert_exit "reduce missing action" 0 "$R" --review-dir "$MISSING"
+assert_eq "missing action is inconsistent" "$(jqv '[.inconsistencies[] | select(.reason == "published action missing")] | length' "$LAST_OUT")" 1
+
+AMB="$RUN/ambiguous"; mkdir -p "$AMB"
+AF="$(ev '{id:"finding-f-amb-1", type:"finding", created_at:$at, finding_id:"f-amb", run_seq:1, path:"amb.txt", body:"amb"}' amb-f)"
+assert_exit "ambiguous finding" 0 "$E" put --review-dir "$AMB" --file "$AF"
+AR_ID="$(eid reply finding-f-amb-1)"; assert_exit "ambiguous parent reply" 0 "$E" put --review-dir "$AMB" --file "$(ev_with amb-r --arg id "$AR_ID" '{id:$id, type:"reply", created_at:$at, reply_to:"finding-f-amb-1", body:"consumer"}')"
+ARR1="$(reviewer_eid "$AR_ID" one)"; ARR2="$(reviewer_eid "$AR_ID" two)"
+assert_exit "first competing reviewer reply" 0 "$E" put --review-dir "$AMB" --file "$(ev_with amb-rr1 --arg id "$ARR1" --arg parent "$AR_ID" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"one"}')"
+assert_exit "second competing reviewer reply" 0 "$E" put --review-dir "$AMB" --file "$(ev_with amb-rr2 --arg id "$ARR2" --arg parent "$AR_ID" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"two"}')"
+assert_exit "publish competing replies" 0 "$E" put --review-dir "$AMB" --file "$(ev_with amb-run --arg a "$ARR1" --arg b "$ARR2" '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"amb", findings:["finding-f-amb-1"], actions:[$a,$b]}')"
+assert_exit "reduce competing replies" 0 "$R" --review-dir "$AMB"
+assert_eq "multiple children are inconsistent" "$(jqv '[.inconsistencies[] | select(.reason == "multiple message children")] | length' "$LAST_OUT")" 1
+
+DANGLING="$RUN/dangling"; mkdir -p "$DANGLING"
+DF="$(ev '{id:"finding-f-dangling-1", type:"finding", created_at:$at, finding_id:"f-dangling", run_seq:1, path:"dangling.txt", body:"dangling"}' dangling-f)"
+assert_exit "dangling finding" 0 "$E" put --review-dir "$DANGLING" --file "$DF"
+DPARENT="reply-000000000000000000000000"; DACTION="$(reviewer_eid "$DPARENT" dangling)"
+assert_exit "put dangling action" 0 "$E" put --review-dir "$DANGLING" --file "$(ev_with dangling-action --arg id "$DACTION" --arg parent "$DPARENT" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"dangling"}')"
+assert_exit "publish dangling action" 0 "$E" put --review-dir "$DANGLING" --file "$(ev_with dangling-run --arg action "$DACTION" '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"dangling", findings:["finding-f-dangling-1"], actions:[$action]}')"
+assert_exit "reduce dangling action" 0 "$R" --review-dir "$DANGLING"
+assert_eq "dangling action parent is inconsistent" "$(jqv '[.inconsistencies[] | select(.reason == "published action parent missing")] | length' "$LAST_OUT")" 1
+
+ORPHAN="$RUN/orphan-reply"; mkdir -p "$ORPHAN"
+OF="$(ev '{id:"finding-f-live-1", type:"finding", created_at:$at, finding_id:"f-live", run_seq:1, path:"live.txt", body:"live"}' orphan-live-f)"
+assert_exit "orphan graph live finding" 0 "$E" put --review-dir "$ORPHAN" --file "$OF"
+assert_exit "orphan graph run" 0 "$E" put --review-dir "$ORPHAN" --file "$(ev '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"orphan", findings:["finding-f-live-1"], actions:[]}' orphan-live-run)"
+ORPHAN_PARENT="finding-f-never-published-9"; ORPHAN_REPLY="$(eid reply "$ORPHAN_PARENT")"
+assert_exit "orphan reply is individually valid" 0 "$E" put --review-dir "$ORPHAN" --file "$(ev_with orphan-reply --arg id "$ORPHAN_REPLY" --arg parent "$ORPHAN_PARENT" '{id:$id, type:"reply", created_at:$at, reply_to:$parent, body:"stale"}')"
+assert_exit "reduce orphan reply graph" 0 "$R" --review-dir "$ORPHAN"
+assert_eq "orphan reply ancestry is inconsistent" "$("$JQ" -r --arg id "$ORPHAN_REPLY" '[.inconsistencies[] | select(.event_id == $id and .reason == "event ancestry does not reach a published finding")] | length' <<<"$LAST_OUT")" 1
+
+DUP="$RUN/duplicate-finding-id"; mkdir -p "$DUP"
+assert_exit "duplicate logical finding v1" 0 "$E" put --review-dir "$DUP" --file "$(ev '{id:"finding-f-dup-1", type:"finding", created_at:$at, finding_id:"f-dup", run_seq:1, path:"dup.txt", body:"v1"}' dup-f1)"
+assert_exit "duplicate logical finding v2" 0 "$E" put --review-dir "$DUP" --file "$(ev '{id:"finding-f-dup-2", type:"finding", created_at:$at, finding_id:"f-dup", run_seq:2, path:"dup.txt", body:"v2"}' dup-f2)"
+assert_exit "publish duplicate logical finding" 0 "$E" put --review-dir "$DUP" --file "$(ev '{id:"review-run-000002", type:"review-run", created_at:$at, run_seq:2, diff_fingerprint:"dup", findings:["finding-f-dup-1","finding-f-dup-2"], actions:[]}' dup-run)"
+assert_exit "reduce duplicate logical finding" 0 "$R" --review-dir "$DUP"
+assert_eq "duplicate finding id is inconsistent" "$(jqv '[.inconsistencies[] | select(.finding_id == "f-dup" and .reason == "multiple finding events for one finding_id in latest run")] | length' "$LAST_OUT")" 1
+
+printf '== long thread\n'
+LONG="$RUN/long"; mkdir -p "$LONG"
+LF="$(ev '{id:"finding-f-long-1", type:"finding", created_at:$at, finding_id:"f-long", run_seq:1, path:"long.txt", body:"long"}' long-f)"
+assert_exit "long finding" 0 "$E" put --review-dir "$LONG" --file "$LF"
+assert_exit "long run" 0 "$E" put --review-dir "$LONG" --file "$(ev '{id:"review-run-000001", type:"review-run", created_at:$at, run_seq:1, diff_fingerprint:"long", findings:["finding-f-long-1"], actions:[]}' long-run)"
+parent="finding-f-long-1"
+i=1
+while (( i <= 12 )); do
+    rid="$(eid reply "$parent")"; assert_exit "long reply $i" 0 "$E" put --review-dir "$LONG" --file "$(ev_with "long-r-$i" --arg id "$rid" --arg parent "$parent" '{id:$id, type:"reply", created_at:$at, reply_to:$parent, body:"reply"}')"
+    rrid="$(reviewer_eid "$rid" reviewer)"; assert_exit "long reviewer reply $i" 0 "$E" put --review-dir "$LONG" --file "$(ev_with "long-rr-$i" --arg id "$rrid" --arg parent "$rid" '{id:$id, type:"reviewer-reply", created_at:$at, reply_to:$parent, body:"reviewer"}')"
+    run_seq=$((i + 1)); run_id="$(printf 'review-run-%06d' "$run_seq")"
+    assert_exit "publish long reviewer reply $i" 0 "$E" put --review-dir "$LONG" --file "$(ev_with "long-run-$i" --arg id "$run_id" --argjson seq "$run_seq" --arg action "$rrid" '{id:$id, type:"review-run", created_at:$at, run_seq:$seq, diff_fingerprint:"long", findings:["finding-f-long-1"], actions:[$action]}')"
+    parent="$rrid"; i=$((i + 1))
+done
+assert_exit "reduce long thread" 0 "$R" --review-dir "$LONG"
+assert_eq "long thread retains all messages" "$(jqv '.threads[0].messages | length' "$LAST_OUT")" 25
+
+printf '== read-only directory\n'
+RO="$RUN/ro"; mkdir -p "$RO/events" "$RO/tmp"; cp "$REVIEW"/events/finding-*.json "$RO/events/"; chmod 555 "$RO/tmp" "$RO"
+assert_exit "put in read-only dir" 8 "$E" put --review-dir "$RO" --file "$F1"
+assert_eq "write denied" "$(jqv .error "$LAST_OUT")" sandbox-write-denied
+assert_exit "reduce in read-only dir" 0 "$R" --review-dir "$RO"
+chmod 755 "$RO" "$RO/tmp"
+
+printf '\n%d passed, %d failed (fixtures: %s)\n' "$PASS" "$FAIL" "$RUN"
+(( FAIL == 0 ))

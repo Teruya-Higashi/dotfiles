@@ -1,6 +1,6 @@
 ---
 name: review-patch
-description: PR、ブランチ、コミット範囲、未コミット差分の通常コードレビューや、実装後のセルフレビューを依頼されたときに使用する。
+description: Use when PR、ブランチ、コミット範囲、未コミット差分の通常レビュー、実装後のセルフレビュー、またはローカル媒体へのレビュー投稿・監視を依頼されたとき。
 ---
 
 # Review Patch
@@ -22,15 +22,26 @@ description: PR、ブランチ、コミット範囲、未コミット差分の�
 
 デフォルトブランチは`git symbolic-ref refs/remotes/origin/HEAD`から解決し、取得できなければリポジトリ情報を確認する。根拠なく`main`へ固定しない。
 
-### オプション（PR指定時のみ）
+### オプション
 
 | オプション | 説明 |
 |---|---|
-| `--watch` | PRのコミット追加を監視し、pushごとにレビューを自動実行する |
-| `--fix` | 修正確認なしでcritical / shouldを修正し、commit + pushまで行う。authorが自分以外なら拒否する |
-| `--post` | 検証済み指摘を事前確認なしでGitHubへ投稿する |
+| `--watch` | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
+| `--fix` | critical / shouldを確認なしで修正する。ローカル差分はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
+| `--post` | 検証済み指摘を事前確認なしで選択した媒体へ投稿する |
+| `--local` | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号と併用するとPR用worktreeをレビューし、許可条件を満たす場合だけPRへpushする |
 
-`--fix`と`--post`の併用時は修正を先に行い、修正で解消した指摘を投稿から除外する。`--watch`指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う。
+引数は左から走査し、対象指定と各オプションをそれぞれ1回だけ受理する。重複・未知の値を拒否する。
+
+- `--local`なしの`--watch` / `--post`はPR指定必須
+- `--local`は対象指定の有無を問わず`--watch` / `--post`と併用できる。PR番号との併用ではtargetを`pr-number:{n}`とし、GitHubへレビュー投稿しない
+- `--local`指定時は開始前に[`references/local-review-mode.md`](references/local-review-mode.md)を全文読み、manifestを確定する
+- `--watch`指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う
+- `--fix --post`は修正を先に行い、解消した指摘を投稿から除外する
+
+PR以外への`--fix`では、現在のbranchが空でなくdetached HEADでないことを開始前に確認する。ブランチ名またはコミット範囲を指定した場合は、そのheadが現在の`HEAD`と一致しなければ別対象へのcommitを避けるため`--fix`を拒否する。レビューと投稿だけなら現在worktreeから指定対象を読んでよい。
+
+`--fix`の終端は対象で分岐する。PR以外は修正・検証・commitまで行いpushしない。PR対象は自分のPRだけ修正し、他人のPRでは拒否する。`--local`なしは同一repositoryだけcommit + pushし、forkでは拒否する。PR + `--local`は同一repositoryならpushし、forkならcommitまでで止める。
 
 ## Step 0: 対象の準備
 
@@ -134,13 +145,17 @@ survived / weakened候補を得た後、PR指定時は`pr-review-setup.md`の「
 
 ## 出力・投稿・レビュー後アクション
 
-Phase 3後に[`references/output-and-actions.md`](references/output-and-actions.md)を全文読み、タグ、出力形式、指摘ゼロ時の扱い、GitHub投稿、修正確認、worktree cleanupに従う。
+Phase 3後に[`references/output-and-actions.md`](references/output-and-actions.md)を全文読み、タグ、出力形式、指摘ゼロ時の扱い、選択した媒体への投稿、修正確認、worktree cleanupに従う。
+
+`--local`では開始直後に`local-review-mode.md`のlocatorを提示し、finding生成・既存finding取得・投稿はPhase 3完了後だけに行う。
 
 ## 例
 
 ```text
 /review-patch 5612
 /review-patch 5612 --watch --fix
+/review-patch 5612 --watch --fix --local
+/review-patch --watch --post --local
 /review-patch https://github.com/owner/repo/pull/5612
 /review-patch feature/foo
 /review-patch abc123..def456
