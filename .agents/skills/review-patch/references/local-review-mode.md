@@ -6,7 +6,7 @@
 
 ## review directoryとmanifest
 
-- state root: `git rev-parse --path-format=absolute --git-common-dir`の親にある`tmp/local-review/`。一時worktree内には置かない。Codexの`workspace-write`では起動前に`mkdir -p {本体repo}/tmp/local-review`し、同じpathを`sandbox_workspace_write.writable_roots`に加える（親の`tmp/`は書けないので、未作成のまま起動するとreview directoryを作れず`event put`が`review-dir not found`のexit 2で止まる）
+- state root: `git rev-parse --path-format=absolute --git-common-dir`の親にある`tmp/local-review/`。一時worktree内には置かない。Claude / Codex とも実行環境の書き込み権限を確認し、許可されている場合だけ起動前に作成する。Codex の `workspace-write` 等で許可範囲外なら、実際に利用可能な承認手段を案内する。スキルから権限設定を自動変更したり、別の state root へ暗黙に移したりしない
 - review ID: producer、repository common dir、正規化前のtarget、論理branch、正規化済みworktree rootをこの順のJSON配列にして`jq -c`でcanonical bytesを作り、そのSHA-256先頭12桁をidentity hashにする。論理branchは通常branch名、detached HEADでは`detached:{worktree rootのbasename}`、PR専用detached worktreeでは`headRefName`とし、空文字にしない。表示用slugはtargetと論理branchの連結を`[A-Za-z0-9._-]`以外`-`へ置換して48文字までに切り、`{producer}-v3-{slug}-{identity-hash}`とする。文字置換だけをidentityに使わない。同じ対象・worktreeの再実行では増やさず、worktreeを作り直した場合は別IDにする。v2 review directoryを再利用・上書きしない
 - review directory: `{state-root}/{review-id}`。eventは`events/`、manifestは`manifest.json`
 
@@ -52,7 +52,7 @@ PR番号/URLと`--local`を併用したときのtarget `pr-number:{n}`の規則�
 - freshness: 編集前とpush直前にPR state/head/base名を再取得し、base refも新しい一意temporary refへfetchする。OPEN、headRefOidが期待SHA、`merge-base(live base tip, expected head)`がreview-runの`base_sha`と一致する場合だけ進む。不一致ならsnapshot更新と再レビューへ戻る
 - push手順: 対象repository所定のvalidation後にcommitし、pre-push hookをskipせず`git -C {worktree_root} push --force-with-lease=refs/heads/{pr.head_ref_name}:{expected-head-oid} origin HEAD:{pr.head_ref_name}`を実行する。push後に`gh pr view {n} --json state,headRefOid`でOPENかつpushしたcommitへの反映を確認してから投稿・返信へ進む
 - post-fix遷移: pushしたcommit、固定baseとの完全SHA diff args、fingerprintをlocal/private fileに保持し、生き残るfindingを再検証してreview-runのcanonical snapshotへ保存する。put前後にOPEN、base ref、live head一致を確認し、manifest snapshotは更新しない。直後にheadが変化していれば成功扱いせずfull再レビューする
-- worktree寿命: manifestが`active`の間は削除しない。ユーザーがレビュー終了を指示して`closed`にしたとき、またはPRがMERGED / CLOSEDになったときにworktree skillの手順10で削除する
+- worktree寿命: manifestが`active`の間は削除しない。ユーザーがレビュー終了を指示して`closed`にしたとき、またはPRがMERGED / CLOSEDになったときにworktree skillの「作業と完了処理」で削除する
 - consumer: reply-pr-reviewはPR番号をlocatorとして`pr.number`一致のmanifestを解決し、同じpush条件と手順でpushする
 
 ## 投稿

@@ -102,6 +102,10 @@ gh stack link \
 
 `link`がbranchのpush、未作成PRの作成、base設定を行う。事前に同じ操作を重ねない。
 
+## 添付のある stack
+
+セッション添付がある場合は [`media-attachments.md`](media-attachments.md) を読む。submit / link 前に対象ファイルと投稿先の stack branch を確認し、承認済みファイルを各 PR の特定後に `gh pr edit --attach` で追加する。本文の補足欄内・AI Generated バッジより前に添付参照を置く。部分成功時は再取得し、submit や添付一式を重複実行しない。
+
 ## 6. 各PRの本文を仕上げる
 
 `--auto`や`link`が生成したタイトル・空のテンプレート本文を完成扱いしない。各branchのopen PRをpreflightと同じREST APIでfork-awareに特定する。

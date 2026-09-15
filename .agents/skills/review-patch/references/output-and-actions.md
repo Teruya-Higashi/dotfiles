@@ -51,7 +51,9 @@ CI等の明示された自動投稿コンテキストを除き、投稿前にサ
 - review payloadの`commit_id`にはレビューした`head_sha`を指定する
 - 投稿後はreviewsとcommentsを再取得し、event、本文、path、lineを照合する
 
-GitHub操作の詳細は`gh-ops`に従う。
+GitHub操作の詳細は`gh-ops`に従う。サマリーの判定は参考情報であり、投稿 API の event とは独立とする。
+
+現在のセッションにユーザー添付の画像・動画がある場合は [`../../create-pr/references/media-attachments.md`](../../create-pr/references/media-attachments.md) を読む。レビュー API は `--attach` 非対応なので、関連添付は承認された companion comment を1件投稿し、その URL をレビュー本文へ記載する。`--post` はレビュー指摘の投稿承認であり、添付や別コメントの追加を自動承認しない。既存の明示承認は引き継ぎ、部分成功・再試行では同じ添付コメントを重複作成しない。`--local` では GitHub へ添付しない。
 
 ## ローカル媒体への投稿（`--local`）
 
@@ -72,7 +74,7 @@ GitHub操作の詳細は`gh-ops`に従う。
 | 他メンバーのPR | 結果を提示し、GitHub投稿を確認 |
 | `--local` | 結果を提示し、正本eventへの投稿を確認。`--post`なら確認を省略 |
 
-`--fix`指定時は修正確認を行わず、critical / shouldを選択済みとして修正する。それ以外は確認前にファイルを変更しない。選択された指摘だけを修正し、プロジェクト既定の検証手順を確認して実行する。
+`--fix`指定時は修正確認を行わず、critical / shouldを選択済みとして修正する。それ以外は確認前にファイルを変更しない。選択された指摘だけを修正し、`AGENTS.md` / `CLAUDE.md` と task runner 定義からプロジェクト既定の検証手順を確認して実行する。対象に対応する `mise run` 等のタスクがあれば優先し、存在しなければ最小の直接コマンドを使う。
 
 - commit前にリポジトリのgit/commit規約を読む
 - 選択された指摘への対応hunkだけをstageする。既存unstaged hunkと安全に分離できなければcommit前に停止する
@@ -82,4 +84,4 @@ GitHub操作の詳細は`gh-ops`に従う。
 
 ## PR用worktreeのcleanup
 
-レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。本体checkoutは変更しない。PR番号 + `--local`ではactive manifestがworktreeを返信対応に使うため削除せず、`local-review-mode.md`のworktree寿命に従う。
+レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。Serena 等を切り替えた場合は削除前に元の絶対パスへ戻す。本体checkoutは変更しない。PR番号 + `--local`ではactive manifestがworktreeを返信対応に使うため削除せず、`local-review-mode.md`のworktree寿命に従う。

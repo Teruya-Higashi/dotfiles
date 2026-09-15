@@ -90,7 +90,7 @@ authorが自分のPR、またはPR番号を伴わないローカル指定なら�
 修正しますか？（all / 番号指定 / none）
 ```
 
-`--fix`指定時はこの確認を行わず、critical / shouldを選択済みとして扱う。それ以外は確認前にファイルを変更しない。選択された指摘だけ対象ファイルを改めて読み、修正する。検証は`AGENTS.md`、プロジェクト文書、task runner定義を確認し、対象に対応する既定タスクを優先する。直接コマンドしかなければ変更に対応する最小のlint / test / build / codegenを実行する。
+`--fix`指定時はこの確認を行わず、critical / shouldを選択済みとして扱う。それ以外は確認前にファイルを変更しない。選択された指摘だけ対象ファイルを改めて読み、修正する。検証は`AGENTS.md` / `CLAUDE.md`、プロジェクト文書、task runner定義を確認し、対象に対応する既定タスクを優先する。直接コマンドしかなければ変更に対応する最小のlint / test / build / codegenを実行する。
 
 `--local`の`staged` / `working`はpostの有無を問わず、結果提示とファイル変更の直前にprivate patch hashとlive target fingerprintを照合する。不一致なら編集・commitせず、新snapshotで4チャネルから再レビューする。
 
@@ -109,8 +109,12 @@ authorが自分のPR、またはPR番号を伴わないローカル指定なら�
 
 `--local`の投稿はmerged検証後だけ行う。本文からチャネル名・一致数・レビュー体制を除き、`--post`なしでは承認後、`--post`ありでは直ちに正本eventへ投稿する。review-runを最後に`event put`し、`reduce`の再取得で確認してからreview IDと`/reply-pr-review --local {review ID}`を提示する。書込み失敗時はmanifestを変更しない。local watchのreply発火では、起動前は`reduce`が返す`replied-unresolved` threadのevent IDだけを機械検査し、本文はマージ後に読む。
 
-PR番号・URL指定でレビューだけを行った場合は、`{artifact_dir}`がworktree外にあること、各成功チャネルの採用出力、merged、timing logが存在して非空であることを再検証してから、自分が作成した専用worktreeと一時refだけを削除する。修正でworktreeがdirtyなら削除・force removeせず、pathを報告して保存・転送方法を確認する。PR番号 + `--local`ではactive manifestがworktreeを使うため削除せず、closedまたはPR終了時だけshared local-review-modeに従って削除する。
+PR番号・URL指定でレビューだけを行った場合は、`{artifact_dir}`がworktree外にあること、各成功チャネルの採用出力、merged、timing logが存在して非空であることを再検証してから、Serena 等を元の絶対パスへ戻し、自分が作成した専用worktreeと一時refだけを削除する。修正でworktreeがdirtyなら削除・force removeせず、pathを報告して保存・転送方法を確認する。PR番号 + `--local`ではactive manifestがworktreeを使うため削除せず、closedまたはPR終了時だけshared local-review-modeに従って削除する。
+
+ユーザー添付メディアを GitHub へ投稿する場合は `review-patch` の GitHub 投稿節と、そこから参照する添付手順に従う。`--post` だけで添付を承認済みとせず、承認済み companion comment の URL を使う。`--local` では GitHub 添付を行わない。
 
 ## 完了報告
 
 対応した指摘、スキップした指摘と理由、検証結果、`{artifact_dir}`の絶対パス、各チャネルの経過秒と生存した固有指摘数を報告する。boundary-followupを実行した場合は経過秒と固有指摘数も含める。失敗チャネルがあれば通常の4チャネル統合ではなく暫定結果であることを明記する。論理チャネル数は常に4で、followupは派生チャネル、再試行は失敗チャネルの別attemptとして扱う。commit、push、GitHub投稿はユーザーが明示的に依頼・承認した場合だけ行う（`--fix` / `--post`指定時はフラグ指定を承認とみなす）。
+
+rules-agent が最遅の場合は timing log のフェーズ別内訳も報告する。実行主体（Claude / Codex）と明示指定モデルを記録し、同じモデル由来の結果を異種モデルの合意と説明しない。フェーズの欠測は未計測と記す。

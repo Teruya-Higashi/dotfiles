@@ -19,7 +19,8 @@ gh pr view "$pr_number" --repo "$base_repo" \
 2. `refs/pull/{PR}/head`を一意な一時refへfetchする。既存local branchや`origin/{head}`を再利用しない。
 3. fetchしたcommitが`headRefOid`と一致することを確認する。
 4. `mktemp -d`で親ディレクトリを作り、そのSHAをdetached HEADの専用worktreeへ展開する。
-5. `rev-parse HEAD`、`rev-parse --show-toplevel`、`worktree list --porcelain`でSHAと隔離を検証する。
+5. [`../../worktree/SKILL.md`](../../worktree/SKILL.md) の「ローカル設定の引き継ぎ」「環境準備」「後続スキルへの引き渡し」を行う。作成手順を重ねて実行しない。
+6. `rev-parse HEAD`、`rev-parse --show-toplevel`、`worktree list --porcelain`でSHAと隔離を検証する。
 
 fork PRでもbase repositoryのpull refを使う。本体checkoutへフォールバックしない。
 

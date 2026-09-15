@@ -18,6 +18,12 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 
 **REQUIRED SUB-SKILL:** PRを対象にする場合や`gh`を使う場合は、`gh-ops`を読み、そのルールに従う。
 
+## Claude / Codex 共通の実行コンテキスト
+
+このスキルと references は Claude / Codex の両方で使う。`SKILL.md` 内の参照パスはそのディレクトリ、references 内の相対リンクは各 reference のディレクトリを基準に解決する。Claude の Skill / Read、Codex のスキル読み込み・ファイル閲覧など、現在利用できる手段で全文を読む。
+
+`active_worktree_path` が渡されていれば具体的な絶対パスを作業先とし、各コマンドの `workdir` または `git -C` に明示する。`worktree_isolation_required: true` なのにパスが未指定・不正なら本体へ戻らず停止する。PR 用 worktree を新規作成した場合はそのパスへ更新し、検証する。
+
 ## 前提
 
 開始前に`command -v codex`と`codex --version`でCodex CLI 0.144.0以降を確認し、不足時は実行しない。モデル、effort、sandbox、approval、セッション永続化は3チャネルのCLIフラグで固定し、ユーザー設定に依存しない。
@@ -25,21 +31,27 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 ## 引数
 
 ```text
-/review-patch-crosscheck [PR番号|PR URL] [--watch] [--fix] [--post] [--local] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--effort EFFORT] [追加レビュー指示]
+/review-patch-crosscheck [PR番号|PR URL] [--watch] [--fix] [--post] [--local] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--agent-model MODEL] [--claude-model MODEL] [--effort EFFORT] [追加レビュー指示]
 ```
 
 | オプション | デフォルト | 説明 |
 |---|---|---|
-| `--target` | `staged` | ローカルレビューの差分範囲 |
+| `--target` | `pr` | ローカルレビューの差分範囲 |
 | `--prefix` | `review` | `{artifact_dir}`直下に置く成果物ファイル名の接頭辞 |
 | `--model` | `gpt-5.6-sol` | Codex 3チャネルのモデル |
+| `--agent-model` | 親セッションを継承 | rules-agent のモデル。実行環境が受理する名前を指定 |
+| `--claude-model` | なし | Claude 上での `--agent-model` の別名。Codex 上では拒否 |
 | `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定4チャネルを保つため`ultra`は使わない |
 | `--watch` | なし | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
 | `--fix` | なし | critical / shouldを確認なしで修正する。PR以外はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
 | `--post` | なし | 検証済み指摘を事前確認なしで選択した媒体へ投稿する |
 | `--local` | なし | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号との併用ではPR用worktreeをtargetにする |
 
+`--agent-model` と `--claude-model` は併用不可。未指定時は親のモデルを継承する。指定時は利用可能なモデルと起動ツールの引数を確認し、不正・非対応なら起動前に拒否する。Codex 3チャネルの `--model` と混同しない。
+
 引数は左から走査する。PR番号または同一リポジトリのPR URLは最大1個、各オプションは最大1個とする。重複、未知オプション、値不足、不正値は実行前にエラーにする。PR指定と`--target`は排他とする。`prefix`は`[A-Za-z0-9._-]+`、modelは`[A-Za-z0-9][A-Za-z0-9._:/-]*`に制限し、改行や制御文字を含む値を拒否する。baseは`git check-ref-format --branch`で検証する。
+
+PR・`--target` の指定がなければ `pr` に正規化してから manifest と watch の対象を確定する。
 
 `--local`なしの`--post` / `--watch`はPR指定必須。`--local`はPR指定の有無を問わず`--watch` / `--post`と併用できる。PR + `--local`ではPR用worktreeを`{workdir}`、targetを`pr-number:{n}`とし、GitHubへレビュー投稿しない。
 
@@ -54,7 +66,7 @@ PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commit�
 
 ## レビュー対象
 
-ベースブランチは`git symbolic-ref refs/remotes/origin/HEAD`から解決し、得られなければ`main`とする。
+ベースブランチは`git symbolic-ref refs/remotes/origin/HEAD`から解決し、得られなければリポジトリ情報で確認する。根拠なく`main`へ固定しない。
 
 | 指定 | 差分コマンド |
 |---|---|
@@ -68,7 +80,7 @@ PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commit�
 
 `--local`の`staged` / `working`は元diffをshared review directoryの`tmp/`にある0600 private patchへ1回保存し、同じbytesのSHA-256だけをrun fingerprintにする。本文を表示せず非空を確認し、4チャネルにはそのpatchだけを渡す。結果提示・編集・投稿の各直前にlive diffを再hashし、不一致なら編集・完了扱いせず新snapshotをレビューする。終了時はpatchを削除せず空へtruncateする。
 
-PR指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseと`refs/pull/{PR}/head`を別々の一意temporary refへfetchし、完全SHAとheadRefOid一致を検証してdetached専用worktreeへ展開する。remote-tracking ref、`FETCH_HEAD`、local branchを再利用せず、forkもbase repositoryのpull refを使う。本体checkoutをstash、reset、checkout、branch変更しない。
+PR指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseと`refs/pull/{PR}/head`を別々の一意temporary refへfetchし、完全SHAとheadRefOid一致を検証してdetached専用worktreeへ展開する。remote-tracking ref、`FETCH_HEAD`、local branchを再利用せず、forkもbase repositoryのpull refを使う。本体checkoutをstash、reset、checkout、branch変更しない。作成後は `worktree` のローカル設定引き継ぎ、環境準備、具体的な作業コンテキストの引き渡しを行う。
 
 PR本文、linked issue、commit、既存レビューはマージまで読まない。`{workdir}`は専用worktreeの絶対パスとする。
 
@@ -86,7 +98,7 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 
 ## 出力
 
-ローカル対象では`{artifact_dir}`を`{workdir}`とする。PR番号またはURL指定では、worktree削除後も結果を保持できるよう、`mktemp -d "${TMPDIR:-/tmp}/review-patch-crosscheck.XXXXXX"`でworktree外に専用`{artifact_dir}`を作る。
+ローカル対象では `git -C "{workdir}" check-ignore tmp/` で除外を確認できれば、`{workdir}/tmp/` 内に `mktemp -d` で専用 `{artifact_dir}` を作る。除外されていなければ OS 一時領域に作り、パスを明示する。レビュー生成物を tracked 差分や commit へ混入させない。PR番号またはURL指定では、worktree削除後も結果を保持できるよう、`mktemp -d "${TMPDIR:-/tmp}/review-patch-crosscheck.XXXXXX"`でworktree外に専用`{artifact_dir}`を作る。
 
 既存ファイルと衝突しない整数`{seq}`を実行ごとに採番する。並行実行による衝突を避けるため、canonical repository pathとprefixを`shasum`でhex keyへ変換し、`/tmp`配下の`{key}-{seq}.lock` directoryを`mkdir`で原子的に予約する。取得できなければ次のseqを試す。予約directoryは正常・異常終了を問わず削除せず、以後は次のseqを使う。
 
@@ -100,7 +112,7 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 {artifact_dir}/{prefix}-boundary-followup_{seq}.md
 ```
 
-各チャネルの開始・終了epoch秒をtiming logへ`channel,attempt,start,end,result`形式で追記する。`result`はexit code、`timeout`、またはサブエージェントの完了状態とする。並列追記は1行単位で行う。
+各チャネルの開始・終了epoch秒をtiming logへ`channel,attempt,start,end,result`形式で追記する。`result`はexit code、`timeout`、またはサブエージェントの完了状態とする。並列追記は1行単位で行う。rules-agent は phase1 / phase2 / phase2.5 / phase3 / write の開始 epoch 秒も計測し、最終応答の計測メタデータを呼び出し元が `rules-agent:{phase},attempt,epoch` 形式で追記する。フェーズ行は所要時間の分析専用とし、指摘の採否には使わない。
 
 `codex exec review`は`cd "{workdir}"`で実行し、対象flagとPROMPT指定を併用しない。通常の`codex exec`は`-C "{workdir}"`を使う。
 

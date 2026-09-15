@@ -9,6 +9,12 @@ description: Use when PR、ブランチ、コミット範囲、未コミット�
 
 **REQUIRED SUB-SKILL:** PR番号・URLを扱う場合や、GitHubからの情報取得・レビュー投稿で`gh`を使う場合は`gh-ops`を読む。
 
+## Claude / Codex 共通の実行コンテキスト
+
+このスキルと references は Claude / Codex の両方で使う。`SKILL.md` 内の参照パスはそのディレクトリ、references 内の相対リンクは各 reference のディレクトリを基準に解決する。Claude の Skill / Read、Codex のスキル読み込み・ファイル閲覧など、現在利用できる手段で全文を読む。
+
+`active_worktree_path` が渡されていれば具体的な絶対パスを作業先とし、各コマンドの `workdir` または `git -C` に明示する。`worktree_isolation_required: true` なのにパスが未指定・不正なら本体へ戻らず停止する。PR 用 worktree を新規作成した場合はそのパスへ更新し、検証する。
+
 ## 入力
 
 引数でレビュー対象を指定する。省略時は現在のブランチのデフォルトブランチからの差分をレビューする。
@@ -45,7 +51,7 @@ PR以外への`--fix`では、現在のbranchが空でなくdetached HEADでな�
 
 ## Step 0: 対象の準備
 
-PR指定時は[`references/pr-review-setup.md`](references/pr-review-setup.md)を全文読む。Step 0では同referenceの「PR情報」「正確なsnapshotの隔離」「差分」だけを実施する。要件収集はPhase 1、既存レビューとの重複排除はValidation後に実施する。
+PR指定時は[`references/pr-review-setup.md`](references/pr-review-setup.md)を全文読む。Step 0では同referenceの「PR情報」「正確なheadの隔離」「差分」だけを実施する。要件収集はPhase 1、既存レビューとの重複排除はValidation後に実施する。
 
 ローカル対象は次の差分を取得する。
 
@@ -73,7 +79,7 @@ PR本文、linked issueの本文とコメント、コミットメッセージを
 
 #### 1c. 関連ルール
 
-変更に関係する規約だけを選んで全文を読む。`AGENTS.md`、`CLAUDE.md`、`.claude/rules/`、`.agents/skills/`、言語・領域別skill、`CONTRIBUTING.md`、linter設定などを、実在を確認してから参照する。
+変更に関係する規約だけを選んで全文を読む。`AGENTS.md`、`CLAUDE.md`、`.claude/rules/`、`.agents/skills/`、`.claude/skills/`、言語・領域別skill、`CONTRIBUTING.md`、linter設定などを、実在を確認してから参照する。
 
 #### 1d. テスト
 

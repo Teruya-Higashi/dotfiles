@@ -20,6 +20,8 @@ GitHub監視用の`{repository-key}`は、canonicalなrepository common dirのSH
 
 ## GitHub投稿を使うPR対象
 
+状態パスの `codex-review-watch` は既存データとの互換名であり、Claude / Codex 共通で使う。
+
 `--local`なしのPR監視だけに適用する。状態は`${TMPDIR:-/tmp}/codex-review-watch/{repository-key}/review-patch-crosscheck-{PR番号}.json`へ保存する。親directoryを`0700`で作り、private temporary JSONを検証してatomic renameする。リポジトリ内へfallbackしない。初回は`gh pr view {PR} --json author,headRefOid,updatedAt,state`を取得して即時レビューする。
 
 ```json
