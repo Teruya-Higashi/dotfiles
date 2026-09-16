@@ -44,7 +44,7 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 | `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定4チャネルを保つため`ultra`は使わない |
 | `--watch` | なし | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
 | `--fix` | なし | critical / shouldを確認なしで修正する。PR以外はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
-| `--post` | なし | 検証済み指摘を事前確認なしで選択した媒体へ投稿する |
+| `--post` | なし | 検証済み指摘を事前確認なしで選択した媒体へ投稿する。ユーザー添付メディアの承認は別途扱う |
 | `--local` | なし | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号との併用ではPR用worktreeをtargetにする |
 
 `--agent-model` と `--claude-model` は併用不可。未指定時は親のモデルを継承する。指定時は利用可能なモデルと起動ツールの引数を確認し、不正・非対応なら起動前に拒否する。Codex 3チャネルの `--model` と混同しない。

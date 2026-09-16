@@ -53,7 +53,7 @@ CI等の明示された自動投稿コンテキストを除き、投稿前にサ
 
 GitHub操作の詳細は`gh-ops`に従う。サマリーの判定は参考情報であり、投稿 API の event とは独立とする。
 
-現在のセッションにユーザー添付の画像・動画がある場合は [`../../create-pr/references/media-attachments.md`](../../create-pr/references/media-attachments.md) を読む。レビュー API は `--attach` 非対応なので、関連添付は承認された companion comment を1件投稿し、その URL をレビュー本文へ記載する。`--post` はレビュー指摘の投稿承認であり、添付や別コメントの追加を自動承認しない。既存の明示承認は引き継ぎ、部分成功・再試行では同じ添付コメントを重複作成しない。`--local` では GitHub へ添付しない。
+現在のセッションにユーザー添付の画像・動画（過去ターンの台帳登録分を含む）がある場合は [`../../create-pr/references/media-attachments.md`](../../create-pr/references/media-attachments.md) を読む。レビュー API は `--attach` 非対応なので、関連添付は承認された companion comment を1件投稿し、その URL をレビュー本文へ記載する。`--post` はレビュー指摘の投稿承認であり、添付や別コメントの追加を自動承認しない。既存の明示承認は引き継ぎ、部分成功・再試行では同じ添付コメントを重複作成しない。`--local` では GitHub へ添付しない。
 
 ## ローカル媒体への投稿（`--local`）
 

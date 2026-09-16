@@ -1,7 +1,7 @@
 personality = "pragmatic"
 model = "gpt-6-astra"
 model_reasoning_effort = "medium"
-model_verbosity = "low"
+model_verbosity = "medium"
 
 web_search = "live"
 show_raw_agent_reasoning = true

@@ -34,7 +34,7 @@ description: Use when PR、ブランチ、コミット範囲、未コミット�
 |---|---|
 | `--watch` | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
 | `--fix` | critical / shouldを確認なしで修正する。ローカル差分はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
-| `--post` | 検証済み指摘を事前確認なしで選択した媒体へ投稿する |
+| `--post` | 検証済み指摘を事前確認なしで選択した媒体へ投稿する。ユーザー添付メディアの承認は別途扱う |
 | `--local` | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号と併用するとPR用worktreeをレビューし、許可条件を満たす場合だけPRへpushする |
 
 引数は左から走査し、対象指定と各オプションをそれぞれ1回だけ受理する。重複・未知の値を拒否する。

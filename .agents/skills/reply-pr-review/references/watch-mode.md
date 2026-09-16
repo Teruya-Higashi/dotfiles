@@ -98,7 +98,7 @@ tick 冒頭で必ず状態ファイルを復元する。会話の記憶だけを
 
 ### 継続 tick
 
-1. 状態ファイルを復元する。`phase: awaiting_user` なら poll せず、ユーザー指示を待つ
+1. 状態ファイルを復元する。`pending.resolvePending`があれば、`awaiting_user`判定より先に末尾のresolve再試行を行う。対象はすでに承認・返信済みなので再承認は求めない。再試行が未完了ならpendingを保持する。resolvePendingがなく`phase: awaiting_user`ならpollせずユーザー指示を待つ
 2. `gh pr view {PR} --json headRefOid,updatedAt,state` を取得する
 3. MERGED / CLOSED なら、実行回数・未処理コメントの有無・最終処理結果を確認して完了報告し、監視を終了する
 4. `updatedAt == lastUpdatedAt` なら 60 秒後の tick へ進む
@@ -112,7 +112,7 @@ tick 冒頭で必ず状態ファイルを復元する。会話の記憶だけを
 
 1. インラインコメント、レビュー本文、PR 会話コメントを `--paginate` 付きで全件再取得する
 2. PR の `state` / `headRefOid` / `updatedAt` も再取得し、確認中に対象が変化していないか照合する。変化していれば最新状態でもう一度取得する
-3. インラインは `in_reply_to_id`、サマリは `reply-pr-review:summary:{id}` の直接証拠で返信済みを判定する。投稿者、AI バッジ、時刻、件数だけで除外しない
+3. インラインは `in_reply_to_id`、サマリは `reply-pr-review:summary:{id}` の直接証拠で返信済みを判定する。添付companion commentは`session-media:attachments:{PR番号}`の共通markerで除外する（他スキルの投稿分も含む）。投稿者、AI バッジ、時刻、件数だけで除外しない
 4. 各サマリ本文を全文読み、表・箇条書き・その他節から指摘を 1 件ずつ抽出する。インラインとの重複は path / line だけでなく内容まで照合する
 5. 対象コードの現在状態を読み、古い diff 行へのコメントでも指摘が現 HEAD に残るか検証して、本体の 2 値判定を行う
 6. 抽出した全指摘が本体手順5の表、または重複根拠のどちらかに必ず現れることを件数で照合する
@@ -137,7 +137,9 @@ PR {PR} で未返信レビュー {N} 件を確認しました。
 1. `pending` の ID と3種類の API 全件を再取得し、対象が存在し未返信のままか確認する
 2. PR の head が `pending.headRefOid` から変わっていれば、対象コードを新しい HEAD で再検証して判定変更を明示する
 3. 指示は出力済みの pending 指摘だけに適用する。停止中に増えた指摘へ暗黙に適用しない
-4. 指示された本体手順7〜8を完了し、push の PR head 反映、インライン返信の `in_reply_to_id`、サマリ返信マーカーを API で再取得して確認する
+4. 指示された本体手順7〜8を完了し、push の PR head 反映、インライン返信の `in_reply_to_id`、返信したthreadの`isResolved: true`、サマリ返信マーカーを API で再取得して確認する
 5. 成功後に `runCount` を加算する。新規未返信があれば直ちに別バッチとして出力して再度一時停止し、なければ最新 `updatedAt`、`phase: watching`、`pending: null` を保存して監視を再開する
 
 処理途中の失敗では pending を消さず、状態ファイルを進めない。再試行可能な状態と失敗箇所を出力する。
+
+GitHubの返信成功後にresolveだけ失敗した場合は、`pending.resolvePending`へ`[{"commentId":0,"replyId":0,"threadId":""}]`を保存する。`--fix`でpendingがnullの場合もPR情報と対象IDを持つpending objectを作る。再開時は`awaiting_user`判定・未返信フィルタ・`updatedAt`比較より先に、この実行で保存した対象の返信・threadを再取得してresolveを再試行する。返信は重複投稿せず、すべての`isResolved: true`を確認するまでpendingを消さず完了扱いにしない。確認済み対象はresolvePendingから除き、その後reviewerがreopenしても自動で閉じ直さない。残りの承認済みpending対象があればその処理を再開し、バッチ全対象の返信・resolve確認後だけ手順「指示受領後の再開」の5へ進む。
