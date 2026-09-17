@@ -20,6 +20,8 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 
 ## Claude / Codex 共通の実行コンテキスト
 
+このスキルの実行中は、準備・レビュー・修正・後片付けの全工程で `rm` / `rmdir` を実行しない。一時ファイル・空ディレクトリも対象とし、スクリプトや委譲先経由でも実行しない。この禁止事項を4チャネルと boundary-followup のプロンプトにも必ず含める。不要な一時ファイルやディレクトリは残し、worktree の cleanup は `git worktree remove` を使う。失敗時に `rm` / `rmdir` へフォールバックしない。
+
 このスキルと references は Claude / Codex の両方で使う。`SKILL.md` 内の参照パスはそのディレクトリ、references 内の相対リンクは各 reference のディレクトリを基準に解決する。Claude の Skill / Read、Codex のスキル読み込み・ファイル閲覧など、現在利用できる手段で全文を読む。
 
 `active_worktree_path` が渡されていれば具体的な絶対パスを作業先とし、各コマンドの `workdir` または `git -C` に明示する。`worktree_isolation_required: true` なのにパスが未指定・不正なら本体へ戻らず停止する。PR 用 worktree を新規作成した場合はそのパスへ更新し、検証する。
