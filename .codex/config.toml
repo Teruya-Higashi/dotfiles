@@ -1,6 +1,9 @@
 personality = "pragmatic"
+
 model = "gpt-6-astra"
-model_reasoning_effort = "medium"
+model_context_window = 872000
+model_auto_compact_token_limit = 741200
+model_reasoning_effort = "high"
 model_verbosity = "medium"
 
 web_search = "live"
@@ -75,10 +78,14 @@ enabled = true
 status_line = ["current-dir", "model-with-reasoning", "context-used", "five-hour-limit", "weekly-limit", "run-state"]
 theme = "one-half-dark"
 status_line_use_colors = true
+screen_reader_detection_done = true
+fullscreen_transcript = false
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
 "gpt-5.6-sol" = 4
+"gpt-6-astra" = 4
+"gpt-6.1-sol" = 4
 
 [analytics]
 enabled = false
