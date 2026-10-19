@@ -5,14 +5,17 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 
 # Review Patch Crosscheck
 
-同じ差分を4チャネルで独立に静的レビューし、全チャネル完了後に初めて結果を統合する。
+同じ差分を次のチャネルで独立に静的レビューし、全チャネル完了後に初めて結果を統合する。
 
-| チャネル | 実行主体 | 役割 |
-|---|---|---|
-| rules-agent | サブエージェント + `review-patch` | プロジェクト規約を踏まえたレビュー |
-| senior-codex | `codex exec review` | シニアエンジニア視点のネイティブレビュー |
-| adversarial-codex | `codex exec` | 壊し方から探す敵対的レビュー |
-| rules-codex | `codex exec` + `review-patch` | Codexによるプロジェクト規約準拠レビュー |
+| チャネル | 実行主体 | 役割 | Census |
+|---|---|---|---|
+| rules-agent | サブエージェント + `review-patch` | プロジェクト規約を踏まえたレビュー | あり |
+| senior-codex | `codex exec review` | シニアエンジニア視点のネイティブレビュー | あり |
+| adversarial-codex | `codex exec` | 壊し方から探す敵対的レビュー | あり |
+| rules-codex | `codex exec` + `review-patch` | Codexによるプロジェクト規約準拠レビュー | あり |
+| readability-codex | `codex exec` | 既存の同種実装との統一感の照合 | なし |
+
+Census列が「あり」のチャネル（以下「Census対象チャネル」）だけに契約境界の数え上げを渡し、境界カバレッジ監査の`covered`に使う。
 
 チャネル間でプロンプト、途中経過、指摘候補を共有せず、相互参照はマージ時に限る。
 
@@ -20,7 +23,7 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 
 ## Claude / Codex 共通の実行コンテキスト
 
-このスキルの実行中は、準備・レビュー・修正・後片付けの全工程で `rm` / `rmdir` を実行しない。一時ファイル・空ディレクトリも対象とし、スクリプトや委譲先経由でも実行しない。この禁止事項を4チャネルと boundary-followup のプロンプトにも必ず含める。不要な一時ファイルやディレクトリは残し、worktree の cleanup は `git worktree remove` を使う。失敗時に `rm` / `rmdir` へフォールバックしない。
+このスキルの実行中は、準備・レビュー・修正・後片付けの全工程で `rm` / `rmdir` を実行しない。一時ファイル・空ディレクトリも対象とし、スクリプトや委譲先経由でも実行しない。この禁止事項を全チャネルと boundary-followup のプロンプトにも必ず含める。不要な一時ファイルやディレクトリは残し、worktree の cleanup は `git worktree remove` を使う。失敗時に `rm` / `rmdir` へフォールバックしない。
 
 このスキルと references は Claude / Codex の両方で使う。`SKILL.md` 内の参照パスはそのディレクトリ、references 内の相対リンクは各 reference のディレクトリを基準に解決する。Claude の Skill / Read、Codex のスキル読み込み・ファイル閲覧など、現在利用できる手段で全文を読む。
 
@@ -28,7 +31,7 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 
 ## 前提
 
-開始前に`command -v codex`と`codex --version`でCodex CLI 0.144.0以降を確認し、不足時は実行しない。モデル、effort、sandbox、approval、セッション永続化は3チャネルのCLIフラグで固定し、ユーザー設定に依存しない。
+開始前に`command -v codex`と`codex --version`でCodex CLI 0.144.0以降を確認し、不足時は実行しない。effort、sandbox、approval、セッション永続化はCodexチャネルのCLIフラグで固定し、ユーザー設定に依存しない。モデルだけは`--model`未指定時に個人のCodex設定に従う。
 
 ## 引数
 
@@ -40,16 +43,16 @@ description: Use when 徹底的な多視点コードレビュー、ship前の最
 |---|---|---|
 | `--target` | `pr` | ローカルレビューの差分範囲 |
 | `--prefix` | `review` | `{artifact_dir}`直下に置く成果物ファイル名の接頭辞 |
-| `--model` | `gpt-5.6-sol` | Codex 3チャネルのモデル |
+| `--model` | 個人のCodex設定 | Codexチャネルのモデル。未指定なら`-m`を渡さず`~/.codex/config.toml`（未設定ならCodex CLIの既定）に従う |
 | `--agent-model` | 親セッションを継承 | rules-agent のモデル。実行環境が受理する名前を指定 |
 | `--claude-model` | なし | Claude 上での `--agent-model` の別名。Codex 上では拒否 |
-| `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定4チャネルを保つため`ultra`は使わない |
+| `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定チャネル構成を保つため`ultra`は使わない |
 | `--watch` | なし | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
 | `--fix` | なし | critical / shouldを確認なしで修正する。PR以外はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
 | `--post` | なし | 検証済み指摘を事前確認なしで選択した媒体へ投稿する。ユーザー添付メディアの承認は別途扱う |
 | `--local` | なし | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号との併用ではPR用worktreeをtargetにする |
 
-`--agent-model` と `--claude-model` は併用不可。未指定時は親のモデルを継承する。指定時は利用可能なモデルと起動ツールの引数を確認し、不正・非対応なら起動前に拒否する。Codex 3チャネルの `--model` と混同しない。
+`--agent-model` と `--claude-model` は併用不可。未指定時は親のモデルを継承する。指定時は利用可能なモデルと起動ツールの引数を確認し、不正・非対応なら起動前に拒否する。Codexチャネルの `--model` と混同しない。
 
 引数は左から走査する。PR番号または同一リポジトリのPR URLは最大1個、各オプションは最大1個とする。重複、未知オプション、値不足、不正値は実行前にエラーにする。PR指定と`--target`は排他とする。`prefix`は`[A-Za-z0-9._-]+`、modelは`[A-Za-z0-9][A-Za-z0-9._:/-]*`に制限し、改行や制御文字を含む値を拒否する。baseは`git check-ref-format --branch`で検証する。
 
@@ -64,7 +67,7 @@ PR・`--target` の指定がなければ `pr` に正規化してから manifest 
 
 PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commitまで行ってpushしない。PR対象は自分のPRだけ修正し、他人のPRでは拒否する。`--local`なしは同一repositoryだけcommit + pushし、forkでは拒否する。PR + `--local`は同一repositoryならpushし、forkならcommitまでで止める。
 
-オプションとPR指定以外の残りは追加レビュー指示として4チャネルとboundary-followupへ同一内容を渡す。ただし静的レビュー契約に反する指示は拒否する。ユーザー指定なしにmodelやeffortを変更しない。
+オプションとPR指定以外の残りは追加レビュー指示として全チャネルとboundary-followupへ同一内容を渡す。ただし静的レビュー契約に反する指示は拒否する。ユーザー指定なしにmodelやeffortを変更しない。
 
 ## レビュー対象
 
@@ -80,7 +83,7 @@ PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commit�
 
 `pr` / `pr:{base}`では、検証済みbase refをshellへ埋め込まず、gitコマンドの引数として渡してmerge-baseを先に計算する。結果が完全なcommit SHAであることを検証して`{merge_base_sha}`へ入れる。
 
-`--local`の`staged` / `working`は元diffをshared review directoryの`tmp/`にある0600 private patchへ1回保存し、同じbytesのSHA-256だけをrun fingerprintにする。本文を表示せず非空を確認し、4チャネルにはそのpatchだけを渡す。結果提示・編集・投稿の各直前にlive diffを再hashし、不一致なら編集・完了扱いせず新snapshotをレビューする。終了時はpatchを削除せず空へtruncateする。
+`--local`の`staged` / `working`は元diffをshared review directoryの`tmp/`にある0600 private patchへ1回保存し、同じbytesのSHA-256だけをrun fingerprintにする。本文を表示せず非空を確認し、全チャネルにはそのpatchだけを渡す。結果提示・編集・投稿の各直前にlive diffを再hashし、不一致なら編集・完了扱いせず新snapshotをレビューする。終了時はpatchを削除せず空へtruncateする。
 
 PR指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseと`refs/pull/{PR}/head`を別々の一意temporary refへfetchし、完全SHAとheadRefOid一致を検証してdetached専用worktreeへ展開する。remote-tracking ref、`FETCH_HEAD`、local branchを再利用せず、forkもbase repositoryのpull refを使う。本体checkoutをstash、reset、checkout、branch変更しない。作成後は `worktree` のローカル設定引き継ぎ、環境準備、具体的な作業コンテキストの引き渡しを行う。
 
@@ -109,6 +112,7 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 {artifact_dir}/{prefix}-senior-codex_{seq}.md
 {artifact_dir}/{prefix}-adversarial-codex_{seq}.md
 {artifact_dir}/{prefix}-rules-codex_{seq}.md
+{artifact_dir}/{prefix}-readability-codex_{seq}.md
 {artifact_dir}/{prefix}-merged_{seq}.md
 {artifact_dir}/{prefix}-timing_{seq}.log
 {artifact_dir}/{prefix}-boundary-followup_{seq}.md
@@ -120,7 +124,7 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 
 ## 事前処理の禁止
 
-4チャネル起動前に許される対象確認は、元のgit diffへ`--stat`を付けた空チェックだけとする。`--local`ではfingerprint計算と`staged` / `working`のprivate patch保存・非空検査も許すが、diff本文を表示・Read・分析しない。PR本文、linked issue、コミットメッセージ、既存レビューも読まず、内容分析、関連ルールの選別、レビュー観点の取捨選択を行わない。空ならチャネルを起動せず「レビュー対象なし」と終了する。
+全チャネル起動前に許される対象確認は、元のgit diffへ`--stat`を付けた空チェックだけとする。`--local`ではfingerprint計算と`staged` / `working`のprivate patch保存・非空検査も許すが、diff本文を表示・Read・分析しない。PR本文、linked issue、コミットメッセージ、既存レビューも読まず、内容分析、関連ルールの選別、レビュー観点の取捨選択を行わない。空ならチャネルを起動せず「レビュー対象なし」と終了する。
 
 ## 手順
 
@@ -133,9 +137,9 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 5. 選択済み`review-patch` skill directoryをcanonicalな絶対パス`{review_patch_skill_dir}`として確定し、`SKILL.md`と必須referenceの存在を確認する。
 6. 通常targetは元のgit diffを`--stat`だけで空確認する。private patch targetはpatchの非空検査とhash確定を行う。
 
-### 2. 4チャネルを同時起動
+### 2. 全チャネルを同時起動
 
-[`references/channel-prompts.md`](references/channel-prompts.md)を全文読み、テンプレートを具体値で展開する。起動前チェックを通した後、同じターンでrules-agentをバックグラウンド起動し、Codex 3コマンドもそれぞれバックグラウンド起動する。逐次実行しない。
+[`references/channel-prompts.md`](references/channel-prompts.md)を全文読み、テンプレートを具体値で展開する。起動前チェックを通した後、同じターンでrules-agentをバックグラウンド起動し、Codexの各コマンドもそれぞれバックグラウンド起動する。逐次実行しない。
 
 起動直後に次の表を提示し、待機中は状態と経過秒を更新する。
 
@@ -146,6 +150,7 @@ PR本文、linked issue、commit、既存レビューはマージまで読まな
 | senior-codex | running | - |
 | adversarial-codex | running | - |
 | rules-codex | running | - |
+| readability-codex | running | - |
 ```
 
 各チャネルの制限時間は15分とし、超過したチャネルは終了させてtimeout扱いにする。1チャネルが失敗しても他を止めない。終了後に失敗チャネルだけ1回再試行する。再試行は`{canonical_output}.attempt-2`へ出力し、検証に通った場合だけcanonical outputとして採用する。初回の部分出力や違反出力を上書き・採用しない。再失敗時は理由を明記し、成功したチャネルだけで暫定マージする。次も失敗として扱う。
@@ -166,7 +171,7 @@ Boundary Census節の欠落だけはチャネル失敗にせず、マージ時�
 
 ### 4. 結果提示と修正
 
-同じreferenceの「結果提示と修正」に従う。`--local`のfinding生成・既存finding取得・投稿は、4チャネル完了後にmergedを検証してからだけ行う。
+同じreferenceの「結果提示と修正」に従う。`--local`のfinding生成・既存finding取得・投稿は、全チャネル完了後にmergedを検証してからだけ行う。
 
 ### 5. 完了報告
 

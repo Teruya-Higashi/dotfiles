@@ -1,6 +1,6 @@
 # Review Patch Crosscheck: Channel Prompts
 
-このファイルは`review-patch-crosscheck`の手順2で全文を読み、4チャネルのプロンプトを組み立てるためのテンプレートである。`{...}`は実行時の具体値に置換する。他チャネルの情報を渡さない。
+このファイルは`review-patch-crosscheck`の手順2で全文を読み、全チャネルのプロンプトを組み立てるためのテンプレートである。`{...}`は実行時の具体値に置換する。他チャネルの情報を渡さない。
 
 ## 共通変数
 
@@ -11,7 +11,7 @@
 | `{diff_command}` | 全チャネル共通の差分取得コマンド |
 | `{output}` | `{artifact_dir}`配下のチャネル固有の絶対出力パス |
 | `{timing}` | timing logの絶対パス |
-| `{model}` | Codexモデル |
+| `{model_flag}` | `--model`指定時は`-m {指定値}`、未指定なら空文字 |
 | `{effort}` | reasoning effort |
 | `{agent_model}` | 指定された場合だけ使う rules-agent のモデル |
 | `{additional_instructions}` | 全チャネル共通の追加レビュー指示。指定なしなら空 |
@@ -22,7 +22,7 @@
 
 ## 静的レビュー契約
 
-以下を4チャネルすべてへそのまま渡す。
+以下を全チャネルへそのまま渡す。
 
 ```text
 <static-review-contract>
@@ -41,7 +41,7 @@
 - ユーザーへの確認、修正の適用
 - PR本文、linked issue、コミットメッセージ、既存レビューの閲覧（統合時に呼び出し元が読む）
 
-各指摘は差分に起因する問題だけを対象にし、ファイルと行、具体的な発火条件、コード上の根拠、影響、実行可能な修正案を示してください。候補ごとに反証を試み、推測だけの指摘、formatterが処理するスタイル、変更と無関係な既存問題、自動生成ファイルへの指摘を除外してください。問題がなければ明確に「指摘なし」としてください。
+各指摘は差分に起因する問題だけを対象にし、ファイルと行、具体的な発火条件（過剰構築の指摘は、同じDoneを満たすより小さい代替差分。既存実装との不統一の指摘は、照合した同種実装の位置と差分の逸脱点）、コード上の根拠、影響、実行可能な修正案を示してください。候補ごとに反証を試み、推測だけの指摘、formatterが処理するスタイル、変更と無関係な既存問題、自動生成ファイルへの指摘を除外してください。問題がなければ明確に「指摘なし」としてください。
 
 最終出力の末尾に「検証: 静的確認のみ（テスト・lint・build未実行）」と明記してください。
 </static-review-contract>
@@ -76,7 +76,7 @@ rules-agentとrules-codexへ静的レビュー契約に加えて渡す。
 
 ## Codexチャネル共通指示
 
-senior-codex、adversarial-codex、rules-codexへ渡す。
+senior-codex、adversarial-codex、rules-codex、readability-codexへ渡す。
 
 ```text
 Codex CLIから利用できない専用ツールを前提にしないでください。`AGENTS.md`、`CLAUDE.md`、変更対象に対応する`.agents/skills`、`.claude/skills`、`.claude/rules`やリポジトリ内の規約を直接読み、影響範囲は`rg`、`git grep`、読み取り専用コマンドで調査してください。規約名やパスを推測せず、`rg --files`で存在を確認してください。
@@ -84,7 +84,7 @@ Codex CLIから利用できない専用ツールを前提にしないでくだ�
 
 ## 対象指定
 
-4チャネルへ同じブロックを渡す。`{diff_command}`自体に`cd`を含めない。
+全チャネルへ同じブロックを渡す。`{diff_command}`自体に`cd`を含めない。
 
 ```text
 <review-target>
@@ -99,7 +99,7 @@ Codex CLIから利用できない専用ツールを前提にしないでくだ�
 
 ## 契約境界の数え上げ
 
-4チャネルすべてへ対象指定の直後に同じブロックを渡す。ファイルやパッケージではなく、差分が変えた契約の到達境界を走査単位にする。
+SKILL.mdのCensus対象チャネルへ対象指定の直後に同じブロックを渡す。ファイルやパッケージではなく、差分が変えた契約の到達境界を走査単位にする。
 
 ```text
 <boundary-census>
@@ -134,7 +134,7 @@ Codex CLIから利用できない専用ツールを前提にしないでくだ�
 - Claude: 利用可能な Agent ツールでバックグラウンド起動する。モデルは既定で省略し、指定時だけ `{agent_model}` を渡す
 - Codex: 利用可能なサブエージェント起動ツールを使う。`fork_turns` が使える場合は `none` とし、独立したプロンプトだけを渡す。モデル指定はそのツールで対応する引数を使う
 - どちらでも会話履歴・他チャネルの結果を継承させず、モデル未指定時は親を継承する。利用できる引数は実際のツール定義を確認する
-- サブエージェント機能がない場合は開始前に不足条件を報告する。親の直接レビューや別CLIへ置き換えて4チャネル完了としない
+- サブエージェント機能がない場合は開始前に不足条件を報告する。親の直接レビューや別CLIへ置き換えて全チャネル完了としない
 
 利用可能なサブエージェント機能を通常の権限制約のまま使い、権限バイパスを指定せずバックグラウンド起動する。read-only sandboxを指定できる実行環境では必ず指定する。プロンプトは「静的レビュー契約 → 対象指定 → 契約境界の数え上げ → review-patch実行指示 → 次の固有指示」の順で連結する。
 
@@ -155,7 +155,7 @@ rules-agent,{attempt},{start},{end},{result}
 - read-only sandboxはモデルが実行するコマンドに適用され、CLI自身による`-o`への書き込みは許可される
 - 終了コードは`rc`へ退避する。zshで読み取り専用の`status`へ代入しない
 - `{workdir}` / `{output}` / `{timing}`は検証済みのcanonical pathだけを使う
-- `-m {model} -c 'model_reasoning_effort="{effort}"'`を3チャネルで統一する
+- `{model_flag} -c 'model_reasoning_effort="{effort}"'`をCodexの全チャネルで統一する。`--model`未指定なら`-m`を渡さず、個人のCodex設定に従う
 - 実値をshell sourceへ無検証で連結しない。workdirなど任意パスは実行ツールのargvまたはshell-safeにquoteした変数として渡す
 - 以下のheredocは模式例である。実行時は完成したpromptに単独行として現れないdelimiterを生成・検査し、固定delimiterへユーザー入力を直接展開しない
 
@@ -173,7 +173,7 @@ cd "{workdir}" && codex exec review \
   --ephemeral \
   -c 'approval_policy="never"' \
   -c 'sandbox_mode="read-only"' \
-  -m {model} \
+  {model_flag} \
   -c 'model_reasoning_effort="{effort}"' \
   -o "{output}" \
   - <<'EOF'
@@ -204,6 +204,9 @@ exit "$rc"
 8. キャッシュ、鮮度、状態同期
 9. 可観測性、診断可能性、障害時の情報欠落
 10. テストが見逃す現実的な失敗経路
+11. 後始末と残留状態
+
+後始末と残留状態は次の手順で調べてください。差分が導入した状態（登録、フック、権限、購読、設定変更、ロック、一時停止など）を1つずつ挙げ、それぞれに対になる解除操作のコードを探して読みます。解除操作が無い、またはrelease・cancel・エラーreturnのいずれかの経路で呼ばれない状態は、残ったまま後続処理の意味を変えないかを確かめてください。この手順の一覧は出力に含めず、問題になったものだけをFindingsに書いてください。
 
 出力形式:
 
@@ -225,7 +228,7 @@ codex exec -C "{workdir}" \
   --ephemeral \
   -c 'approval_policy="never"' \
   -c 'sandbox_mode="read-only"' \
-  -m {model} \
+  {model_flag} \
   -c 'model_reasoning_effort="{effort}"' \
   -o "{output}" \
   - <<'EOF'
@@ -251,7 +254,7 @@ codex exec -C "{workdir}" \
   --ephemeral \
   -c 'approval_policy="never"' \
   -c 'sandbox_mode="read-only"' \
-  -m {model} \
+  {model_flag} \
   -c 'model_reasoning_effort="{effort}"' \
   -o "{output}" \
   - <<'EOF'
@@ -263,9 +266,41 @@ printf '%s,%s,%s,%s,%s\n' rules-codex "{attempt}" "$start" "$end" "$rc" >> "{tim
 exit "$rc"
 ```
 
+## チャネル5: readability-codex
+
+プロンプトは「静的レビュー契約 → 対象指定 → Codex共通指示 → 次の固有指示」の順で連結する。Census対象外のため、契約境界の数え上げは渡さない。
+
+```text
+あなたは既存コードとの統一感だけを確認するレビュアーです。正確性・セキュリティ・性能は扱わないでください。
+
+差分が追加・変更した型、関数・メソッド、フィールド、設定キー、コメント、テストごとに、同じ型・interface・パッケージ・ディレクトリにある同種の既存実装（兄弟要素）を探し、次を照合してください。
+
+- 公開形: 戻り値・引数の型、interface経由か具象型か、ゼロ値・nilの表し方
+- 命名: 同じ役割の兄弟と語彙・粒度が揃っているか
+- エラー処理・ログの言語と書き方、コメントの書き方
+- テストの配置と構成
+
+指摘は、照合した兄弟要素（2つ以上）がすべて同じパターンに揃い、差分だけが明らかに外れている場合に限ってください。兄弟が足りない、または既存実装の中でもばらついている場合は指摘しないでください。好みや一般論による書き換え提案もしないでください。プロジェクト規約（`AGENTS.md`、`CLAUDE.md`、`.claude/rules/`、`.agents/skills`、`.claude/skills`等）が定める書き方と兄弟要素が食い違う場合は規約を正とし、兄弟に合わせる指摘をしないでください。コメント・テスト名の言語はプロジェクト規約の記述言語の定めで決まるため、照合対象から外してください。
+
+照合の過程は出力に含めず、指摘だけを次の形式で返してください。
+
+## Readability Review
+
+### Findings
+- `path:line` — 概要
+  - Pattern: 兄弟要素が揃えているパターンと、照合した兄弟要素すべての`path:line`（2つ以上）
+  - Deviation: 差分がどう外れているか
+  - Impact: 不統一が利用側・読み手に与える影響
+  - Fix: 揃える修正案
+
+指摘がなければ`No findings.`とし、最終回答だけを返してください。
+```
+
+実行はadversarial-codexのテンプレートを使い、channel名を`readability-codex`、`{output}`をcanonicalな絶対パス`{artifact_dir}/{prefix}-readability-codex_{seq}.md`に置き換える。
+
 ## 条件付きチャネル: boundary-followup
 
-マージの境界カバレッジ監査が未走査境界を検出した場合だけ、全境界をまとめて1回実行する。通常4チャネルとの同時起動対象ではなく、再試行・再監査もしない。他チャネルの本文や指摘候補を渡さず、監査で確定した境界名だけを渡す。追加レビュー指示がある場合は末尾へ同じ内容を付ける。
+マージの境界カバレッジ監査が未走査境界を検出した場合だけ、全境界をまとめて1回実行する。通常チャネルとの同時起動対象ではなく、再試行・再監査もしない。他チャネルの本文や指摘候補を渡さず、監査で確定した境界名だけを渡す。追加レビュー指示がある場合は末尾へ同じ内容を付ける。
 
 プロンプトは「静的レビュー契約 → 対象指定 → Codex共通指示 → adversarial-codexの固有指示 → 次の指示 → 追加レビュー指示」の順とし、契約境界の数え上げは再度貼らない。
 
@@ -279,18 +314,18 @@ exit "$rc"
 
 テンプレート展開後、レビュー分析をせず次だけを機械的に確認する。
 
-- 4つの`{diff_command}`が完全一致する
+- 全チャネルの`{diff_command}`が完全一致する
 - 各`{output}`が異なり、すべて`{artifact_dir}`直下の絶対パスである
-- 3つのCodexコマンドが同じ`{model}` / `{effort}`を使う
-- 3つのCodexコマンドに`--ephemeral`、`-c 'approval_policy="never"'`、`-c 'sandbox_mode="read-only"'`がある
+- Codexの全コマンドが同じ`{model_flag}` / `{effort}`を使う（`--model`未指定なら`-m`がない）
+- Codexの全コマンドに`--ephemeral`、`-c 'approval_policy="never"'`、`-c 'sandbox_mode="read-only"'`がある
 - `codex exec review`に`-C`と対象指定フラグがない
 - 通常の`codex exec`に`-C "{workdir}"`がある
-- 4チャネルすべてに静的レビュー契約が展開されている
-- 4チャネルすべてに契約境界の数え上げが展開されている
+- 全チャネルに静的レビュー契約が展開されている
+- 契約境界の数え上げがCensus対象チャネルにだけ展開されている
 - rules-agentとrules-codexにreview-patch実行指示が展開されている
 - `{review_patch_skill_dir}`がcanonicalな絶対パスで、必須3ファイルが存在する
 - rules-agentが`{workdir}`基準でread-only動作し、最終応答を呼び出し元が`{output}`へ保存する
-- 追加レビュー指示があれば4チャネルに同一内容が展開されている
+- 追加レビュー指示があれば全チャネルに同一内容が展開されている
 - 各チャネルの出力契約に静的確認の必須フッターがある
 
-確認後、4チャネルを同じターンでバックグラウンド起動する。
+確認後、全チャネルを同じターンでバックグラウンド起動する。
