@@ -10,6 +10,7 @@ fi
 PATH=/opt/homebrew/bin:/opt/homebrew/sbin:$PATH
 
 brew install git
+brew install curl
 brew install zsh-autosuggestions
 brew install zsh-completions
 brew install mise

@@ -3,6 +3,7 @@ path=(
   $HOME/.local/share/mise/shims(N-/)
   /opt/homebrew/bin(N-/)
   /opt/homebrew/sbin(N-/)
+  /opt/homebrew/opt/curl/bin
   /usr/bin
   /usr/sbin
   /bin
