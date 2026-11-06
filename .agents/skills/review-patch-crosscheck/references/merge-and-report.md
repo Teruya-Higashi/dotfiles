@@ -105,7 +105,7 @@ authorが自分のPR、またはPR番号を伴わないローカル指定なら�
 
 `--local`の投稿はmerged検証後だけ行う。本文からチャネル名・一致数・レビュー体制を除き、`--post`なしでは承認後、`--post`ありでは直ちに正本eventへ投稿する。review-runを最後に`event put`し、`reduce`の再取得で確認してからreview IDと`/reply-pr-review --local {review ID}`を提示する。書込み失敗時はmanifestを変更しない。local watchのreply発火では、起動前は`reduce`が返す`replied-unresolved` threadのevent IDだけを機械検査し、本文はマージ後に読む。
 
-PR番号・URL指定でレビューだけを行った場合は、`{artifact_dir}`がworktree外にあること、各成功チャネルの採用出力、merged、timing logが存在して非空であることを再検証してから、Serena 等を元の絶対パスへ戻し、自分が作成した専用worktreeと一時refだけを削除する。修正でworktreeがdirtyなら削除・force removeせず、pathを報告して保存・転送方法を確認する。PR番号 + `--local`ではactive manifestがworktreeを使うため削除せず、closedまたはPR終了時だけshared local-review-modeに従って削除する。
+PR番号・URL指定でレビューだけを行った場合は、`{artifact_dir}`がworktree外にあること、各成功チャネルの採用出力、merged、timing logが存在して非空であることを再検証してから、自分が作成した専用worktreeと一時refだけを削除する。修正でworktreeがdirtyなら削除・force removeせず、pathを報告して保存・転送方法を確認する。PR番号 + `--local`ではactive manifestがworktreeを使うため削除せず、closedまたはPR終了時だけshared local-review-modeに従って削除する。
 
 ユーザー添付メディアを GitHub へ投稿する場合は `review-patch` の GitHub 投稿節と、そこから参照する添付手順に従う。`--post` だけで添付を承認済みとせず、承認済み companion comment の URL を使う。`--local` では GitHub 添付を行わない。
 

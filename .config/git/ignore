@@ -1,7 +1,6 @@
 **/.DS_Store
 
 **/.claude/settings.local.json
-**/.serena/cache/
 **/.playwright-cli
 
 # .takt: ignore everything except version-controlled config/facets

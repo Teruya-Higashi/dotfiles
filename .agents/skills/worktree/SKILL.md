@@ -45,8 +45,6 @@ PR レビューは [`../review-patch/references/pr-review-setup.md`](../review-p
 ## 4. 環境準備
 
 - mise / direnv を使う場合は設定を確認し、コピー後に worktree の絶対パスに対して trust / allow を行う
-- Serena 等を使う場合は利用可能な `activate_project` に worktree の絶対パスを渡す。同名登録の曖昧さを避けるためプロジェクト名は使わない
-- 切り替えツールが使えなければ、本体へ向いたツールで編集せず、対象パスを明示できるファイル操作や検索を使う。ツール設定を自動変更しない
 
 ## 5. 後続スキルへの引き渡し
 
@@ -71,4 +69,4 @@ worktree_isolation_required: true
 - レビュー結果など必要な成果物が削除後も参照できる場所に保存されている
 - `--local` レビューの manifest が active の間は、返信対応に必要な worktree を維持する
 
-Serena 等を切り替えた場合は削除前に元の絶対パスへ戻す。その後 `git worktree remove "{absolute_worktree_path}"` で削除する。再利用した worktree は削除しない。削除が拒否された場合は原因を確認し、未保存データを捨てる `--force` を自動実行しない。保持した worktree、commit、成果物のパスを最終報告に含める。
+`git worktree remove "{absolute_worktree_path}"` で削除する。再利用した worktree は削除しない。削除が拒否された場合は原因を確認し、未保存データを捨てる `--force` を自動実行しない。保持した worktree、commit、成果物のパスを最終報告に含める。

@@ -84,4 +84,4 @@ GitHub操作の詳細は`gh-ops`に従う。サマリーの判定は参考情報
 
 ## PR用worktreeのcleanup
 
-レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。Serena 等を切り替えた場合は削除前に元の絶対パスへ戻す。本体checkoutは変更しない。PR番号 + `--local`ではactive manifestがworktreeを返信対応に使うため削除せず、`local-review-mode.md`のworktree寿命に従う。
+レビューのみでworktreeがcleanなら、成果物がworktree外にあることを確認してから専用worktreeと一時refを削除する。修正でdirtyならforce removeせず、pathを報告して保存・転送方法をユーザーへ確認する。本体checkoutは変更しない。PR番号 + `--local`ではactive manifestがworktreeを返信対応に使うため削除せず、`local-review-mode.md`のworktree寿命に従う。

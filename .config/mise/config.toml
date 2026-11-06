@@ -13,5 +13,6 @@ gcloud = "latest"
 "aqua:cli/cli" = "latest"
 
 "npm:@playwright/cli" = "latest"
+"npm:skills" = "latest"
 
 "github:tomasz-tomczyk/crit" = "latest"

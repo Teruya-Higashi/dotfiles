@@ -33,5 +33,5 @@ curl -o ~/.zsh/git-prompt.zsh https://raw.githubusercontent.com/woefe/zsh-git-pr
 
 mise install
 mise x -- playwright-cli install --skills
-mise x -- claude mcp add serena -s user -- mise x -- uvx --from "git+https://github.com/oraios/serena" serena start-mcp-server --enable-web-dashboard false --context ide-assistant
+mise x -- skills add nanaism/yomiyasu --skill yomiyasu --agent codex --yes
 # mise x -- codex plugin add superpowers@openai-curated

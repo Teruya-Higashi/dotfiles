@@ -53,9 +53,6 @@ extends = ":workspace"
 # crit
 "~/.crit" = "write"
 
-# serena
-"~/.serena" = "write"
-
 # dotfiles
 "~/projects/dotfiles" = "write"
 
@@ -92,19 +89,3 @@ enabled = false
 
 [plugins."superpowers@openai-curated"]
 enabled = true
-
-[mcp_servers.serena]
-command = "mise"
-args = [
-  "x",
-  "--",
-  "uvx",
-  "--from",
-  "git+https://github.com/oraios/serena",
-  "serena",
-  "start-mcp-server",
-  "--enable-web-dashboard",
-  "false",
-  "--context",
-  "codex",
-]
