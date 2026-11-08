@@ -1,19 +1,34 @@
 ---
-name: create-pr
-description: Pull Requestの作成・更新、Draft PR、Stacked PR、gh stack、ghコマンドによるPR作成を依頼されたときに使用する。
+name: pull-request
+description: Use when commit、push、rebase、Pull Request の作成・更新、Draft PR、Stacked PR、gh stack、ブランチ名やコミットメッセージを扱う依頼があるとき。
 ---
 
 # Pull Request 作成
 
 簡潔でレビュー可能な Draft PR を作成する。
 
-**REQUIRED SUB-SKILL:** `gh` を使う前に `gh-ops` を読み、その認証・投稿・autolink・AI Generated バッジのルールに従う。
+**REQUIRED SUB-SKILL:** `gh` を使う前に [GitHub 共通規約](../_shared/github-writing.md) を読み、その認証・投稿・autolink・AI Generated バッジのルールに従う。
 
 ## Claude / Codex 共通の実行コンテキスト
 
 このスキルと references は Claude / Codex の両方で使う。`SKILL.md` 内の参照パスはそのディレクトリ、references 内の相対リンクは各 reference のディレクトリを基準に解決する。Claude の Skill / Read、Codex のスキル読み込み・ファイル閲覧など、現在利用できる手段で全文を読む。
 
 `active_worktree_path` が渡されていれば具体的な絶対パスを作業先とし、各コマンドの `workdir` または `git -C` に明示する。`worktree_isolation_required: true` なのにパスが未指定・不正なら本体へ戻らず停止する。PR 用 worktree を新規作成した場合はそのパスへ更新し、検証する。
+
+## 操作の選択
+
+依頼された操作に対応する経路だけを行う。現在地と未コミット変更を確認し、作業場所が未確定なら [作業環境](../setup-workspace/SKILL.md) を読む。既存の許可範囲を引き継ぐ。
+
+| 依頼 | 経路 |
+|---|---|
+| commit / コミットメッセージ | staged diff と対象 repo の commit 規約を読み、指定された stage 範囲だけを commit。PR 作成・push・rebase は追加しない |
+| push | 現 branch、指定先、upstream、送信する commit を確認し、既存 hook を通して push。PR 作成や履歴書き換えは追加しない |
+| rebase / stack の追随 | 作業場所と対象 ref を確定し、明示された履歴変更だけ行う。stack は references/stacked-pr.md の手動手順を使う |
+| PR 作成・更新 | 以下の PR 手順を実行する |
+
+commit message は `git diff --cached`、PR 本文は PR 全体（stack は親との差分）、コードコメントは現在のコードを根拠にする。commit message は主題を 1 行で示し、本文は diff から復元できない判断だけを短く残す。ファイル一覧・作業履歴・セッション URL を転載しない。
+
+hook は省略せず、失敗時は対象 repo の task runner と規約で検証・修正する。自動修正後は diff と stage 範囲を確認する。特定の検証ツール、amend、force push を既定手順にしない。
 
 ## 簡潔に書く
 
@@ -158,12 +173,12 @@ Issue の本文を読み、完成条件や仕様判断がコメントにある�
 
 ### 5. 本文の作成
 
-現在のセッションにユーザー添付の画像・動画（引き継いだ台帳を含む）がある場合は、[`references/media-attachments.md`](references/media-attachments.md) に従い、関連する添付と投稿先を確定する。承認済み添付の本文参照は補足欄内・AI Generated バッジより前に置き、対応する create / edit に `--attach` を渡す。添付なしの通常操作ではこの reference を読まない。
+現在のセッションにユーザー添付の画像・動画（引き継いだ台帳を含む）がある場合は、[`../_shared/media-attachments.md`](../_shared/media-attachments.md) に従い、関連する添付と投稿先を確定する。承認済み添付の本文参照は補足欄内・AI Generated バッジより前に置き、対応する create / edit に `--attach` を渡す。添付なしの通常操作ではこの reference を読まない。
 
 選択したリポジトリのテンプレート、またはフォールバックを一時ファイルへ展開する。
 
 ```bash
-pr_body_file=$(mktemp "${TMPDIR:-/tmp}/create-pr-body.XXXXXX")
+pr_body_file=$(mktemp "${TMPDIR:-/tmp}/pull-request-body.XXXXXX")
 trap 'rm -f "$pr_body_file"' EXIT HUP INT TERM
 ```
 
@@ -260,4 +275,4 @@ gh pr view "{pr_number}" --repo "{base_repo}" \
 - 選択されていないコメントを投稿しない
 - 複数コメントは可能なら1つの`COMMENT`レビューにまとめ、通知を増幅させない
 - severityバッジは付けず、各コメント冒頭にAI Generatedバッジを付ける
-- [`references/self-review-comments.md`](references/self-review-comments.md)を全文読み、`gh-ops`の安全な本文受け渡しを使って投稿後に再取得する
+- [`references/self-review-comments.md`](references/self-review-comments.md)を全文読み、[GitHub 共通規約](../_shared/github-writing.md)の安全な本文受け渡しを使って投稿後に再取得する

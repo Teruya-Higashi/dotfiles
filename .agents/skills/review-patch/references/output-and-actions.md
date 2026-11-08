@@ -34,7 +34,7 @@
 
 各指摘はタグ、変更後のファイル・行、問題、具体的な発火条件、コード上の根拠、影響、実行可能な修正案、対応判定を含む。`likely`を残す場合は未確認の前提を明記する。
 
-指摘がゼロならAPPROVEとし、「指摘なし」、変更の意図、影響範囲を示す。投稿する必要がなければ投稿しない。
+指摘がゼロならAPPROVEとし、「指摘なし」、変更の意図、影響範囲を示す。投稿する必要がなければ投稿しない。ただし `--rounds` の正常収束時は [watch の回数指定](watch-mode.md) に従い、snapshot を照合して収束通知を投稿する。
 
 ## GitHub投稿
 
@@ -51,9 +51,9 @@ CI等の明示された自動投稿コンテキストを除き、投稿前にサ
 - review payloadの`commit_id`にはレビューした`head_sha`を指定する
 - 投稿後はreviewsとcommentsを再取得し、event、本文、path、lineを照合する
 
-GitHub操作の詳細は`gh-ops`に従う。サマリーの判定は参考情報であり、投稿 API の event とは独立とする。
+GitHub操作の詳細は[GitHub 共通規約](../../_shared/github-writing.md)に従う。サマリーの判定は参考情報であり、投稿 API の event とは独立とする。
 
-現在のセッションにユーザー添付の画像・動画（過去ターンの台帳登録分を含む）がある場合は [`../../create-pr/references/media-attachments.md`](../../create-pr/references/media-attachments.md) を読む。レビュー API は `--attach` 非対応なので、関連添付は承認された companion comment を1件投稿し、その URL をレビュー本文へ記載する。`--post` はレビュー指摘の投稿承認であり、添付や別コメントの追加を自動承認しない。既存の明示承認は引き継ぎ、部分成功・再試行では同じ添付コメントを重複作成しない。`--local` では GitHub へ添付しない。
+現在のセッションにユーザー添付の画像・動画（過去ターンの台帳登録分を含む）がある場合は [`../../_shared/media-attachments.md`](../../_shared/media-attachments.md) を読む。レビュー API は `--attach` 非対応なので、関連添付は承認された companion comment を1件投稿し、その URL をレビュー本文へ記載する。`--post` はレビュー指摘の投稿承認であり、添付や別コメントの追加を自動承認しない。既存の明示承認は引き継ぎ、部分成功・再試行では同じ添付コメントを重複作成しない。`--local` では GitHub へ添付しない。
 
 ## ローカル媒体への投稿（`--local`）
 

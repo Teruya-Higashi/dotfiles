@@ -1,6 +1,6 @@
 ---
-name: worktree
-description: Use when 独立した git worktree で別ブランチの作業、並行タスク、PR の検証・レビューを実行するとき。
+name: setup-workspace
+description: Use when 作業場所の確認・準備、別ブランチの作業、並行タスク、PR の検証・レビュー、worktree の片付け、gh の認証エラーを扱うとき。
 ---
 
 ## 概要
@@ -9,6 +9,10 @@ Claude / Codex のどちらでも、git worktree の準備、作業コンテキ�
 
 既存のネイティブ worktree がある場合も Git の登録情報で確認する。リポジトリが作成手段を指定していれば従う。ツールが自動作成したことだけでローカル設定の引き継ぎや環境準備が済んだとはみなさない。
 
+## 認証エラーだけを扱う場合
+
+目的の `gh` コマンドで認証エラーになり、Keychain を参照できない環境なら [認証復旧](references/gh-auth.md) を読む。事前の `gh auth status` は行わず、認証復旧のためだけに新しい worktree を作らない。通常の GitHub 操作前には [GitHub 共通規約](../_shared/github-writing.md) を読む。
+
 ## 1. 状態と作業場所の確認
 
 `git status --short`、`git worktree list --porcelain`、`git rev-parse --show-toplevel`、`git rev-parse --path-format=absolute --git-common-dir` で現在の checkout、本体、既存 worktree を確認する。
@@ -16,7 +20,7 @@ Claude / Codex のどちらでも、git worktree の準備、作業コンテキ�
 - 本体の未コミット変更は残したまま別 worktree を作る。作成のために stash / reset しない
 - 既存 worktree は対象 branch / SHA が一致し、その作業に使える場合だけ再利用する。パスに `worktrees/` が含まれるだけでは判定しない
 - 本体・作業先を canonical な絶対パスで記録し、今回自分が作成した worktree と再利用したものを区別する
-- `AGENTS.md`、`CLAUDE.md`、ブランチ命名・配置規約を確認する。`gh` が必要なら `gh-ops` を読む
+- `AGENTS.md`、`CLAUDE.md`、ブランチ命名・配置規約を確認する。`gh` が必要なら [GitHub 共通規約](../_shared/github-writing.md) を読む
 
 ## 2. ブランチと worktree の作成
 
@@ -61,7 +65,7 @@ worktree_isolation_required: true
 
 ## 6. 作業と完了処理
 
-指定された作業を実行し、対応する検証を行う。許可済みの作業について完了確認を繰り返さない。PR 作成を依頼された場合は `create-pr`、レビュー投稿は `review-patch` の手順を使い、既存の依頼・承認範囲を引き継ぐ。
+指定された作業を実行し、対応する検証を行う。許可済みの作業について完了確認を繰り返さない。PR 作成を依頼された場合は `pull-request`、レビュー投稿は `review-patch` の手順を使い、既存の依頼・承認範囲を引き継ぐ。
 
 終了時は次を確認する。
 

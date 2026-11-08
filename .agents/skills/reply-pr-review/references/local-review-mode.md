@@ -63,15 +63,19 @@ reply eventを`mise run --quiet --raw local-review:event -- put --review-dir "{r
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "review_id": "",
   "locator": "",
   "phase": "watching|awaiting_user|stopped",
-  "pending": null
+  "pending": null,
+  "runCount": 0,
+  "lastCompletedBatchKey": null
 }
 ```
 
 `awaiting_user`の`pending`は`{"diff_fingerprint":"", "findings":[{"finding_event_id":"", "tail_event_id":""}]}`として、検知した全findingを配列で保存する。再開時は保存済みtailと現在値の完全一致を必須とし、不一致なら最新本文で判定表とpendingを更新して再承認を待つ。schema不一致や必須field欠損のwatch stateは理由を表示し、`stopped`と同じく状態なしとして初期化する。
+
+`runCount`は返信・必要な修正の反映を確認したバッチ数。`lastCompletedBatchKey`は同じバッチの重複加算を防ぐ checkpoint で、処理済み finding 一覧の代わりにはしない。batchKey・pending の更新順と収束判定は [watch の回数指定](watch-mode.md) に従う。manifest は schema 3 のまま維持する。
 
 ## 修正時のtarget policy
 
@@ -81,7 +85,7 @@ reply eventを`mise run --quiet --raw local-review:event -- put --review-dir "{r
 2. common dirが一致し、`pr-number`以外ではbranch一致かつdetached HEADでない場合だけmanifestのworktreeを修正先に固定する。`pr-number`は専用detached worktreeで、HEADがreview-runのhead_shaと完全一致し、dirty変更と未push commitがない場合だけ固定する。
 3. `branch`と`range`は現在HEADがreview-runのhead_shaと完全一致する場合だけ修正する。
 4. `pr-number`はHEAD完全一致だけを許す。`default`、`pr`、`staged`、`working`はHEAD一致、またはreview-run headが現在HEADのancestorで同じfingerprintの場合だけ修正する。
-5. 対象repository所定のvalidation後、repositoryのgit/commit規約を全文読み、GitHub操作には`gh-ops`を使う。
+5. 対象repository所定のvalidation後、repositoryのgit/commit規約を全文読み、GitHub操作には[GitHub 共通規約](../../_shared/github-writing.md)を使う。
 
 - `pr` / `pr:{base}` / `pr-number` / `branch` / `range` / `default`: 承認済み修正hunkだけをstageしてcommitする
 - `staged`: 実行時点のindexと承認済み修正hunkだけをstageしてcommitし、既存のunstaged tracked変更とuntracked fileは含めない。既存unstaged hunkと修正hunkを安全に分離できなければcommit前に停止して報告する

@@ -52,7 +52,7 @@ PR番号/URLと`--local`を併用したときのtarget `pr-number:{n}`の規則�
 - freshness: 編集前とpush直前にPR state/head/base名を再取得し、base refも新しい一意temporary refへfetchする。OPEN、headRefOidが期待SHA、`merge-base(live base tip, expected head)`がreview-runの`base_sha`と一致する場合だけ進む。不一致ならsnapshot更新と再レビューへ戻る
 - push手順: 対象repository所定のvalidation後にcommitし、pre-push hookをskipせず`git -C {worktree_root} push --force-with-lease=refs/heads/{pr.head_ref_name}:{expected-head-oid} origin HEAD:{pr.head_ref_name}`を実行する。push後に`gh pr view {n} --json state,headRefOid`でOPENかつpushしたcommitへの反映を確認してから投稿・返信へ進む
 - post-fix遷移: pushしたcommit、固定baseとの完全SHA diff args、fingerprintをlocal/private fileに保持し、生き残るfindingを再検証してreview-runのcanonical snapshotへ保存する。put前後にOPEN、base ref、live head一致を確認し、manifest snapshotは更新しない。直後にheadが変化していれば成功扱いせずfull再レビューする
-- worktree寿命: manifestが`active`の間は削除しない。ユーザーがレビュー終了を指示して`closed`にしたとき、またはPRがMERGED / CLOSEDになったときにworktree skillの「作業と完了処理」で削除する
+- worktree寿命: manifestが`active`の間は削除しない。ユーザーがレビュー終了を指示して`closed`にしたとき、またはPRがMERGED / CLOSEDになったときにsetup-workspaceの「作業と完了処理」で削除する
 - consumer: reply-pr-reviewはPR番号をlocatorとして`pr.number`一致のmanifestを解決し、同じpush条件と手順でpushする
 
 ## 投稿
@@ -94,3 +94,9 @@ review directory: {review-directory}
 ```
 
 `pr-number`では`/reply-pr-review {PR番号} --local`も同じmanifestへ解決する。
+
+## 回数指定の正常収束通知
+
+`--rounds` の正常収束時だけ、全処理が成功した空 findings の review-run の body 末尾へ `<!-- review-rounds:converged:{diff_fingerprint} -->` を独立行で 1 個付ける。固定した現在の fingerprint と一致し、fix 後ゼロや未走査ありではないことを put 前に確認する。
+
+manifest と event schema は変更しない。通常の空 run、部分失敗、consumer reply への応答だけでは付けない。put 後は `reduce.review_run.body` と private payload の marker を照合してから成功回数を進める。

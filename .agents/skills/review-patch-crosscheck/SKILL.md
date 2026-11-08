@@ -19,7 +19,7 @@ Census列が「あり」のチャネル（以下「Census対象チャネル」�
 
 チャネル間でプロンプト、途中経過、指摘候補を共有せず、相互参照はマージ時に限る。
 
-**REQUIRED SUB-SKILL:** PRを対象にする場合や`gh`を使う場合は、`gh-ops`を読み、そのルールに従う。
+**REQUIRED SUB-SKILL:** PRを対象にする場合や`gh`を使う場合は、[GitHub 共通規約](../_shared/github-writing.md)を読み、そのルールに従う。
 
 ## Claude / Codex 共通の実行コンテキスト
 
@@ -36,7 +36,7 @@ Census列が「あり」のチャネル（以下「Census対象チャネル」�
 ## 引数
 
 ```text
-/review-patch-crosscheck [PR番号|PR URL] [--watch] [--fix] [--post] [--local] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--agent-model MODEL] [--claude-model MODEL] [--effort EFFORT] [追加レビュー指示]
+/review-patch-crosscheck [PR番号|PR URL] [--watch] [--rounds N] [--fix] [--post] [--local] [--target staged|working|pr|pr:{base}] [--prefix NAME] [--model MODEL] [--agent-model MODEL] [--claude-model MODEL] [--effort EFFORT] [追加レビュー指示]
 ```
 
 | オプション | デフォルト | 説明 |
@@ -48,6 +48,7 @@ Census列が「あり」のチャネル（以下「Census対象チャネル」�
 | `--claude-model` | なし | Claude 上での `--agent-model` の別名。Codex 上では拒否 |
 | `--effort` | `medium` | `medium` / `high` / `xhigh` / `max`。固定チャネル構成を保つため`ultra`は使わない |
 | `--watch` | なし | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
+| `--rounds N` | なし | レビューと投稿を最大 N 回行う。正の整数・`--post`必須。`--watch`を自動付与し、正常な指摘ゼロで早期終了する |
 | `--fix` | なし | critical / shouldを確認なしで修正する。PR以外はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
 | `--post` | なし | 検証済み指摘を事前確認なしで選択した媒体へ投稿する。ユーザー添付メディアの承認は別途扱う |
 | `--local` | なし | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号との併用ではPR用worktreeをtargetにする |
@@ -61,9 +62,10 @@ PR・`--target` の指定がなければ `pr` に正規化してから manifest 
 `--local`なしの`--post` / `--watch`はPR指定必須。`--local`はPR指定の有無を問わず`--watch` / `--post`と併用できる。PR + `--local`ではPR用worktreeを`{workdir}`、targetを`pr-number:{n}`とし、GitHubへレビュー投稿しない。
 
 - `--local`では[`../review-patch/references/local-review-mode.md`](../review-patch/references/local-review-mode.md)を全文読み、producerを`review-patch-crosscheck`としてmanifestを確定する
-- `--watch`では[`references/watch-mode.md`](references/watch-mode.md)を全文読む
+- `--watch`（`--rounds`による自動付与を含む）では[`references/watch-mode.md`](references/watch-mode.md)を全文読む
 - PRの`--fix`はauthorが自分以外なら拒否する
 - `--fix --post`は修正を先に行い、解消した指摘を投稿しない
+- `--rounds N`は`[1-9][0-9]*`に一致する整数で`--post`必須。`--watch`を自動付与し、同じ対象条件を検証する。不正値・値不足・重複は manifest 作成や API 操作より先に拒否する。watch reference の「回数指定」に従う
 
 PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commitまで行ってpushしない。PR対象は自分のPRだけ修正し、他人のPRでは拒否する。`--local`なしは同一repositoryだけcommit + pushし、forkでは拒否する。PR + `--local`は同一repositoryならpushし、forkならcommitまでで止める。
 
@@ -85,7 +87,7 @@ PR以外への`--fix`はdetached HEADでは拒否し、修正・検証・commit�
 
 `--local`の`staged` / `working`は元diffをshared review directoryの`tmp/`にある0600 private patchへ1回保存し、同じbytesのSHA-256だけをrun fingerprintにする。本文を表示せず非空を確認し、全チャネルにはそのpatchだけを渡す。結果提示・編集・投稿の各直前にlive diffを再hashし、不一致なら編集・完了扱いせず新snapshotをレビューする。終了時はpatchを削除せず空へtruncateする。
 
-PR指定時は`gh-ops`を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseと`refs/pull/{PR}/head`を別々の一意temporary refへfetchし、完全SHAとheadRefOid一致を検証してdetached専用worktreeへ展開する。remote-tracking ref、`FETCH_HEAD`、local branchを再利用せず、forkもbase repositoryのpull refを使う。本体checkoutをstash、reset、checkout、branch変更しない。作成後は `worktree` のローカル設定引き継ぎ、環境準備、具体的な作業コンテキストの引き渡しを行う。
+PR指定時は[GitHub 共通規約](../_shared/github-writing.md)を読み、最初は`baseRefName`と`headRefOid`だけを取得する。baseと`refs/pull/{PR}/head`を別々の一意temporary refへfetchし、完全SHAとheadRefOid一致を検証してdetached専用worktreeへ展開する。remote-tracking ref、`FETCH_HEAD`、local branchを再利用せず、forkもbase repositoryのpull refを使う。本体checkoutをstash、reset、checkout、branch変更しない。作成後は `setup-workspace` のローカル設定引き継ぎ、環境準備、具体的な作業コンテキストの引き渡しを行う。
 
 PR本文、linked issue、commit、既存レビューはマージまで読まない。`{workdir}`は専用worktreeの絶対パスとする。
 

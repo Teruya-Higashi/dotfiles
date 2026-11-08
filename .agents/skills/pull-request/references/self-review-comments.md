@@ -1,6 +1,6 @@
 # Self-review Comments
 
-ユーザーがセルフレビューコメントの投稿も明示し、`create-pr`本体の事前選択を終えた場合だけ使う。
+ユーザーがセルフレビューコメントの投稿も明示し、`pull-request`本体の事前選択を終えた場合だけ使う。
 
 ## 1. 投稿位置を検証する
 
@@ -32,7 +32,7 @@ gh pr diff "{pr_number}" --repo "{base_repo}"
 }
 ```
 
-payloadはshell文字列へ展開せず、`gh-ops`に従って`--input`で渡す。
+payloadはshell文字列へ展開せず、[GitHub 共通規約](../../_shared/github-writing.md)に従って`--input`で渡す。
 
 ```bash
 gh api --method POST \

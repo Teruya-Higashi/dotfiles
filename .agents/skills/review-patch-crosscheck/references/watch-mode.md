@@ -14,7 +14,7 @@ watchの駆動は次に従う。
 - 状態: 毎tickでファイルから復元し、会話の記憶だけに依存しない
 - エラー: 状態を進めず再試行する
 - セッション終了: 状態を残し、監視停止を明示する
-- 終了: 状態ファイルは削除せず`{"phase":"stopped"}`をrename上書きする。読み込み時にstoppedなら状態なしとして初期化する
+- 終了: 状態ファイルは削除せず、成功回数・reviewed snapshot・失敗理由・未確認範囲など既存の全 field を保持して phase だけ stopped に atomic rename する。明示的に新しい監視を開始するときは保存した結果と未確認範囲を提示してから実行単位のカウンターを初期化する。単なる読込み・停止では消去しない
 
 GitHub監視用の`{repository-key}`は、canonicalなrepository common dirのSHA-256先頭16文字とし、各tickで再計算する。
 
@@ -74,4 +74,27 @@ consumer replyはdiff fingerprintと別に毎tick監視する。
 
 安定した更新を確認した時点で、対象種別とreviewedValueからcandidateValueへの変化を出力し、full targetを全チャネルで再レビューすることを明示する。レビュー結果は通常実行と同じmerged形式で提示する。
 
-ローカル差分はユーザーがwatch終了を指示したときだけwatch stateをstoppedへ上書きする。manifestは別セッションからの返信に必要なためactiveのまま残す。
+ローカル差分はユーザーがwatch終了を指示したとき、または`--rounds`の終了条件を満たしたときにwatch stateをstoppedへ上書きする。manifestは別セッションからの返信に必要なためactiveのまま残す。
+
+## 回数指定（`--rounds N`）
+
+`--rounds N`は`--post`必須で watch を自動付与する。上限 N は起動引数から読み、自己再入でコマンド名・引数を一字一句維持する。状態は既存の `runCount` と snapshot を使う。
+
+- 初回を含め、本体のレビュー、必要な fix の commit / push、投稿と反映確認まで完了した 1 回をラウンドとする。GitHub では `reviewedSha` と同時に runCount を 1 増やす。ローカルでは review-run の put・reduce 照合成功後に増やす。状態更新は同じ private JSON の atomic rename で確定する。
+- 投稿失敗、snapshot 不一致による破棄、consumer reply への再判定だけでは加算しない。上限に達した状態を復元したら本体を再実行せず終了する。
+- `runCount >= N`なら次 tick を予約せず、実行回数・最終結果を報告して stopped を保存する。ローカル manifest は active のまま残す。
+- 統合・重複排除後の指摘が 0 件で、失敗チャネルも未走査境界もない のラウンドは、数えた上で N 未満でも正常収束として終了する。
+- `--fix`ですべて解消して投稿候補が 0 件になった場合は正常収束ではない。marker を付けず通常のラウンドとして数える。
+
+指摘 0 件でも失敗チャネルまたは未走査境界が残る場合は、正常収束 marker を付けず、成功回数も reviewedSha / reviewedValue も進めない。失敗理由と未確認の範囲を state に保持して停止し、実行回数は完了済みの成功回数だけを報告する。
+
+正常収束したラウンドは投稿を省略しない。
+
+| 媒体 | 収束通知 |
+|---|---|
+| GitHub | 「指摘なし」の COMMENT レビューを、レビューした head SHA の `commit_id` 付きで投稿し、本文末尾の独立行に `<!-- review-rounds:converged:{headRefOid} -->` を 1 個付ける |
+| ローカル | `findings: []` の review-run を最後に put し、body の末尾の独立行に `<!-- review-rounds:converged:{diff_fingerprint} -->` を 1 個付ける |
+
+marker の SHA / fingerprint は投稿直前に再照合した snapshot の値だけを使う。部分失敗や通常の「未返信なし」に付けない。consumer が停止・収束を取り違えないよう、正常収束でない空 run には marker を付けない。
+
+例: `/review-patch-crosscheck 123 --rounds 3 --post`。`--rounds`を指定しない watch の継続・承認条件は従来どおりとする。

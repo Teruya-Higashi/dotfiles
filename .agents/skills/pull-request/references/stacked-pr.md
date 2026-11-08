@@ -1,6 +1,6 @@
 # Stacked PR
 
-`create-pr`でStacked PRまたは`gh stack`を明示された場合だけ、この手順を使う。
+`pull-request`でStacked PRまたは`gh stack`を明示された場合だけ、この手順を使う。
 
 ## 1. capability確認
 
@@ -104,7 +104,7 @@ gh stack link \
 
 ## 添付のある stack
 
-セッション添付がある場合は [`media-attachments.md`](media-attachments.md) を読む。submit / link 前に対象ファイルと投稿先の stack branch を確認し、承認済みファイルを各 PR の特定後に `gh pr edit --attach` で追加する。本文の補足欄内・AI Generated バッジより前に添付参照を置く。部分成功時は再取得し、submit や添付一式を重複実行しない。
+セッション添付がある場合は [添付メディア](../../_shared/media-attachments.md) を読む。submit / link 前に対象ファイルと投稿先の stack branch を確認し、承認済みファイルを各 PR の特定後に `gh pr edit --attach` で追加する。本文の補足欄内・AI Generated バッジより前に添付参照を置く。部分成功時は再取得し、submit や添付一式を重複実行しない。
 
 ## 6. 各PRの本文を仕上げる
 
@@ -160,3 +160,20 @@ gh pr view "{pr_number}" --repo "{base_repo}" \
 - エージェントセッションURL、内部実行URL、プロンプト履歴、個人環境の絶対パスを含まない
 
 1つでも満たさなければ完了扱いにせず、変更操作の承認範囲内で修正して再取得する。
+
+## 手動での親→子 rebase
+
+既存の親子 PR を追随させる依頼では、gh-stack への採用を推測せずこの経路を使う。ユーザーが許可した branch・rebase・push の範囲を引き継ぐ。
+
+1. 親子それぞれの base/head repository、branch、作業場所、dirty 状態を確認する。子の base が親であることを確認し、rebase 前の親を `old_parent_sha`、追随先 default branch の tip を完全 SHA で固定する。別 repo の同名 branch を取り違えない。
+2. 子が `old_parent_sha` を祖先に持つことを確認する。確認できない、dirty、未退避の変更がある場合は操作せず報告する。
+3. 親の作業場所で固定した default branch tip に rebase する。競合や想定外の履歴では停止し、推測で reset / drop しない。許可済みの push を明示的な lease で行い、リモートの親 SHA を再取得して `new_parent_sha` に固定する。
+4. 子の作業場所で、古い親より先の commit だけを新しい親へ載せ替える。
+
+```bash
+git -C "$child_worktree" rebase --onto "$new_parent_sha" "$old_parent_sha"
+```
+
+5. 子の push 前にも旧リモート head を照合し、許可された明示 lease で push する。PR の base/head と差分を再取得し、親の変更が子の差分へ混入しないことを確認する。
+
+子を直接 default branch へ rebase しない。履歴変更・force push を新たに許可されたと解釈せず、通常 push と submit / link を重ねない。`rebase.updateRefs` 等の恒久設定は変更しない。

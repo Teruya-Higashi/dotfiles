@@ -27,7 +27,7 @@ gh api --paginate repos/:owner/:repo/issues/{pr_number}/comments \
 
 - インラインは `path:line` に紐づき、`in_reply_to` でスレッド返信できる。
 - レビュー本文・PR 会話コメントは `path:line` に紐づかないため、PR 会話コメントで返信する。
-- 除外するのは自分の返信と添付companion commentだけ。インラインは`in_reply_to_id`、サマリは`reply-pr-review:summary:`、添付commentは`<!-- session-media:attachments:{PR番号} -->`のhidden marker（他スキルの投稿分を含む）を直接証拠にする。`![AI Generated]`、bot、時刻、件数を除外条件にしない。
+- 除外するのは自分の返信、添付companion comment、正常収束通知だけ。正常収束通知は自分の gh アカウントのレビューで、末尾の独立行に現在 head SHA と一致する `<!-- review-rounds:converged:{sha} -->` が 1 個あることを直接証拠にする。他者・古い SHA の marker は収束とせず通常の本文として検証する。インラインは`in_reply_to_id`、サマリは`reply-pr-review:summary:`、添付commentは`<!-- session-media:attachments:{PR番号} -->`のhidden marker（他スキルの投稿分を含む）を直接証拠にする。`![AI Generated]`、bot、時刻、件数を除外条件にしない。
 
 未返信は次の規則で判定する。
 
@@ -36,7 +36,7 @@ gh api --paginate repos/:owner/:repo/issues/{pr_number}/comments \
 - サマリ内の各項目: 既存インラインと内容まで一致するものだけ集約する
 - 一致しない項目: 共通判定表の独立行にする
 - 添付companion comment: 共通markerで除外し、サマリ指摘として抽出しない
-- 対象0件: 「未返信のレビューコメントはありません」と表示して終了する
+- 対象0件: 通常実行は終了する。watch（回数指定を含む）は watch reference の終了判定へ戻る
 
 ## GitHub の修正と返信
 
@@ -44,7 +44,7 @@ gh api --paginate repos/:owner/:repo/issues/{pr_number}/comments \
 
 返信には必ず AI Generated バッジを付ける。
 
-現在のセッションにユーザー添付メディア（過去ターンの台帳登録分を含む）がある場合は、[`../../create-pr/references/media-attachments.md`](../../create-pr/references/media-attachments.md)に従って候補判定と確認を行う。確認済み添付がある場合、返信APIは`--attach`非対応なので、先にcompanion commentを1件投稿し、そのURLを各返信に記載する。本文にはAI Generatedバッジ、添付の目的・返信対象と`<!-- session-media:attachments:{PR番号} -->`を付ける。返信だけ失敗した再試行では台帳・対象・添付内容が一致する既存commentのURLを再利用し、重複投稿しない。添付投稿が失敗・部分成功・結果不明なら返信を投稿せず、既存commentの状態と不足分を報告する。
+現在のセッションにユーザー添付メディア（過去ターンの台帳登録分を含む）がある場合は、[`../../_shared/media-attachments.md`](../../_shared/media-attachments.md)に従って候補判定と確認を行う。確認済み添付がある場合、返信APIは`--attach`非対応なので、先にcompanion commentを1件投稿し、そのURLを各返信に記載する。本文にはAI Generatedバッジ、添付の目的・返信対象と`<!-- session-media:attachments:{PR番号} -->`を付ける。返信だけ失敗した再試行では台帳・対象・添付内容が一致する既存commentのURLを再利用し、重複投稿しない。添付投稿が失敗・部分成功・結果不明なら返信を投稿せず、既存commentの状態と不足分を報告する。
 
 ```markdown
 ![AI Generated](https://img.shields.io/badge/AI-Generated-blueviolet)
@@ -70,7 +70,7 @@ gh api repos/:owner/:repo/issues/{pr_number}/comments \
 EOF
 ```
 
-複数のサマリ指摘には、指摘ごとに投稿するか、1件に対象markerをすべて列挙する。`gh api`のコンテンツは`gh-ops`の`--input`手順に従う。
+複数のサマリ指摘には、指摘ごとに投稿するか、1件に対象markerをすべて列挙する。`gh api`のコンテンツは[GitHub 共通規約](../../_shared/github-writing.md)の`--input`手順に従う。
 
 ## 返信したインラインの resolve
 

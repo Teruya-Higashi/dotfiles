@@ -7,7 +7,7 @@ description: Use when PR、ブランチ、コミット範囲、未コミット�
 
 差分の表面だけでなく、変更の意図と影響範囲を理解し、根拠を検証してから指摘する。
 
-**REQUIRED SUB-SKILL:** PR番号・URLを扱う場合や、GitHubからの情報取得・レビュー投稿で`gh`を使う場合は`gh-ops`を読む。
+**REQUIRED SUB-SKILL:** PR番号・URLを扱う場合や、GitHubからの情報取得・レビュー投稿で`gh`を使う場合は[GitHub 共通規約](../_shared/github-writing.md)を読む。
 
 ## Claude / Codex 共通の実行コンテキスト
 
@@ -35,6 +35,7 @@ description: Use when PR、ブランチ、コミット範囲、未コミット�
 | オプション | 説明 |
 |---|---|
 | `--watch` | PRはコミット追加、`--local`のローカル対象は安定したdiff fingerprintとconsumer replyを監視して再レビューする |
+| `--rounds N` | レビューと投稿を最大 N 回行う。正の整数・`--post`必須。`--watch`を自動付与し、正常な指摘ゼロで早期終了する |
 | `--fix` | critical / shouldを確認なしで修正する。ローカル差分はcommitまで、自分の同一repository PRはcommit + pushする。PR + `--local`のforkだけcommit止まりを許す |
 | `--post` | 検証済み指摘を事前確認なしで選択した媒体へ投稿する。ユーザー添付メディアの承認は別途扱う |
 | `--local` | 投稿先をGitHubではなくローカルのreview directory（正本event）にする。PR番号と併用するとPR用worktreeをレビューし、許可条件を満たす場合だけPRへpushする |
@@ -44,8 +45,9 @@ description: Use when PR、ブランチ、コミット範囲、未コミット�
 - `--local`なしの`--watch` / `--post`はPR指定必須
 - `--local`は対象指定の有無を問わず`--watch` / `--post`と併用できる。PR番号との併用ではtargetを`pr-number:{n}`とし、GitHubへレビュー投稿しない
 - `--local`指定時は開始前に[`references/local-review-mode.md`](references/local-review-mode.md)を全文読み、manifestを確定する
-- `--watch`指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う
+- `--watch`（`--rounds`による自動付与を含む）指定時は[`references/watch-mode.md`](references/watch-mode.md)を全文読み、それに従う
 - `--fix --post`は修正を先に行い、解消した指摘を投稿から除外する
+- `--rounds N`は`[1-9][0-9]*`に一致する整数で`--post`必須。`--watch`を自動付与し、同じ対象条件を検証する。固定したコミット範囲（range）では拒否する。値なし・重複・不正値は manifest 作成や API 操作より先に拒否する。watch reference の「回数指定」に従う
 
 PR以外への`--fix`では、現在のbranchが空でなくdetached HEADでないことを開始前に確認する。ブランチ名またはコミット範囲を指定した場合は、そのheadが現在の`HEAD`と一致しなければ別対象へのcommitを避けるため`--fix`を拒否する。レビューと投稿だけなら現在worktreeから指定対象を読んでよい。
 
