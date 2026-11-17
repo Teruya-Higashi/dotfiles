@@ -82,5 +82,6 @@
   "theme": "dark-daltonized",
   "autoCompactEnabled": true,
   "remoteControlAtStartup": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "feedbackDrafts": "off"
 }
