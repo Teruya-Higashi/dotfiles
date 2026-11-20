@@ -67,9 +67,6 @@ extends = ":workspace"
 ".agents" = "write"
 ".codex" = "write"
 
-"**/gha-creds-*.json" = "deny"
-"**/.env*" = "deny"
-
 [permissions."default".network]
 enabled = true
 
