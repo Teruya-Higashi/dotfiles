@@ -1,6 +1,6 @@
 personality = "pragmatic"
 
-model = "gpt-6-astra"
+model = "gpt-6.2-sol"
 model_context_window = 872000
 model_auto_compact_token_limit = 741200
 model_reasoning_effort = "high"
@@ -25,18 +25,19 @@ extends = ":workspace"
 # mise
 "~/.local/share/mise" = "write"
 "~/.local/state/mise" = "write"
-"~/Library/Caches/mise" = "write"
 
 # Go
 "~/go/pkg/mod" = "write"
 "~/go/pkg/sumdb" = "write"
-"~/Library/Caches/go-build" = "write"
 "~/Library/Application Support/go/telemetry" = "write"
 
 # TypeScript
 "~/.npm" = "write"
 "~/Library/pnpm" = "write"
-"~/Library/Caches/pnpm" = "write"
+
+# Rust
+"~/.cargo" = "write"
+"~/.rustup" = "write"
 
 # Docker
 "~/.docker/buildx" = "write"
@@ -58,6 +59,7 @@ extends = ":workspace"
 
 # cache
 "~/.cache" = "write"
+"~/Library/Caches" = "write"
 
 [permissions."default".filesystem.":workspace_roots"]
 "." = "write"
